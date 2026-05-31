@@ -1,0 +1,5 @@
+inspect-ai
+pandas
+numpy
+scipy
+datasets

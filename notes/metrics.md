@@ -1,0 +1,1 @@
+Сравнить методы по safety, false positives, utility degradation и jailbreak robustness;

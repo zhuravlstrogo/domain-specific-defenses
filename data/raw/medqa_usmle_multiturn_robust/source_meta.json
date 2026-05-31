@@ -1,0 +1,11 @@
+{
+  "dataset_id": "dynamoai-ml/MedQA-USMLE-4-MultiTurnRobust",
+  "split": "train",
+  "seed": 42,
+  "limit": 100,
+  "raw_count": 1050,
+  "selected_count": 100,
+  "processed_count": 100,
+  "processed_path": "/Users/anyarulina/domain-specific-defenses/data/processed/medqa_multiturn_robust_v1.jsonl",
+  "raw_path": "/Users/anyarulina/domain-specific-defenses/data/raw/medqa_usmle_multiturn_robust/raw_subset.jsonl"
+}
