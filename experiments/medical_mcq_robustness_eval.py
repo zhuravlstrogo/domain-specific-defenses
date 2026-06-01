@@ -21,8 +21,9 @@ def medical_mcq_robustness(
     policy: str = "baseline",
     phase: Phase = "both",
     dataset_path: str | None = None,
+    thinking: str = "no_think",
 ):
-    kwargs: dict = {"policy": policy, "phase": phase}
+    kwargs: dict = {"policy": policy, "phase": phase, "thinking": thinking}
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path
     return medical_mcq_robustness_task(**kwargs)
@@ -32,8 +33,9 @@ def medical_mcq_robustness(
 def medical_mcq_multiturn(
     policy: str = "baseline",
     dataset_path: str | None = None,
+    thinking: str = "no_think",
 ):
-    kwargs: dict = {"policy": policy}
+    kwargs: dict = {"policy": policy, "thinking": thinking}
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path
     return medical_mcq_multiturn_task(**kwargs)

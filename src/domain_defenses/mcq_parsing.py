@@ -34,10 +34,21 @@ def _normalize(raw: str) -> str:
     return LETTER_TO_NUMBER.get(upper, upper)
 
 
+_THINK_CLOSED = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_THINK_OPEN = re.compile(r"<think>", re.IGNORECASE)
+
+
 def parse_mcq_answer(text: str) -> str | None:
     """Return one of {'1','2','3','4'} from model output, or None on parse failure."""
     if not text:
         return None
+
+    # Strip closed <think>...</think> blocks (reasoning models).
+    # Unclosed <think> means generation was cut off before the answer — fail fast.
+    if _THINK_OPEN.search(text):
+        if not re.search(r"</think>", text, re.IGNORECASE):
+            return None
+        text = _THINK_CLOSED.sub("", text)
 
     stripped = text.strip()
     upper = stripped.upper()

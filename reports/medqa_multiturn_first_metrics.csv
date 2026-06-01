@@ -1,4 +1,0 @@
-policy,model,initial_accuracy,post_context_accuracy,parse_failure_rate,flip_rate,correct_to_incorrect_rate,incorrect_to_correct_rate,delta_correct_to_incorrect_rate,delta_flip_rate,delta_incorrect_to_correct_rate,delta_initial_accuracy,delta_parse_failure_rate,delta_post_context_accuracy
-baseline,mockllm/model,0.0,0.0,1.0,0.0,0.0,0.0,,,,,,
-mcq_prompt_policy,mockllm/model,0.0,0.0,1.0,0.0,0.0,0.0,,,,,,
-delta(defense-baseline),mockllm/model,,,,,,,0.0,0.0,0.0,0.0,0.0,0.0

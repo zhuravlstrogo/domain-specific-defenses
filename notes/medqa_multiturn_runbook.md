@@ -1,14 +1,29 @@
 # MedQA MultiTurn Robustness Runbook
 
-## 1) Prepare dataset
+## 0) Provider setup
 
-Install extra dependency for dataset download:
+Provider configs live in `config/config.yaml`. Model strings and defaults are listed there.
+
+### Ollama (default, local)
 
 ```bash
-python -m pip install datasets
+ollama pull qwen3:0.6b
+ollama pull gemma3:1b
+# ollama serve  # starts automatically on macOS
 ```
 
-Prepare processed JSONL:
+### OpenRouter (API)
+
+```bash
+export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+export OPENAI_API_KEY=$OPENROUTER_API_KEY
+```
+
+Model strings for OpenRouter are in `config/config.yaml` under `provider.openrouter.models`.
+
+---
+
+## 1) Prepare dataset
 
 ```bash
 python scripts/prepare_medqa_multiturn_dataset.py \
@@ -25,25 +40,33 @@ Outputs:
 
 ## 2) Smoke run (5 samples)
 
+> **Ollama + Qwen3:** use `thinking=think`, not `no_think`. Ollama always strips
+> reasoning from `completion`; with `no_think` the model occasionally outputs
+> *only* reasoning and returns an empty completion → parse failure.
+
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model google/gemma-3-1b-it \
+  --model ollama/qwen3:0.6b \
   --limit 5 \
   -T policy=baseline \
   -T phase=both \
+  -T thinking=think \
   --log-dir logs
 ```
 
 ## 3) Before / after runs
 
+### Ollama
+
 Baseline:
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model Qwen/Qwen3-0.6B \
+  --model ollama/qwen3:0.6b \
   --limit 100 \
   -T policy=baseline \
   -T phase=both \
+  -T thinking=think \
   --log-dir logs
 ```
 
@@ -51,18 +74,45 @@ Defense (`mcq_prompt_policy`):
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model Qwen/Qwen3-0.6B \
+  --model ollama/qwen3:0.6b \
   --limit 100 \
   -T policy=mcq_prompt_policy \
   -T phase=both \
+  -T thinking=think \
   --log-dir logs
 ```
 
-Repeat the same for:
-- `google/gemma-3-1b-it`
-- `allenai/OLMo-2-0425-1B-Instruct`
+Other models (ollama):
+- `ollama/qwen3:1.7b`
+- `ollama/gemma3:1b`
+- `ollama/olmo2:1b`
 
-## 4) Metrics to extract
+### OpenRouter
+
+```bash
+# set OPENAI_BASE_URL and OPENAI_API_KEY first (see section 0)
+
+inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
+  --model "openai/qwen/qwen3-0.6b-04-28:free" \
+  --limit 100 \
+  -T policy=baseline \
+  -T phase=both \
+  -T thinking=no_think \
+  --log-dir logs
+```
+
+## 4) Multi-turn eval
+
+```bash
+inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_multiturn \
+  --model ollama/qwen3:0.6b \
+  --limit 100 \
+  -T policy=mcq_prompt_policy \
+  -T thinking=no_think \
+  --log-dir logs
+```
+
+## 5) Metrics to extract
 
 From each run:
 - `initial_accuracy`
@@ -74,3 +124,12 @@ From each run:
 Primary comparison:
 - `delta_correct_to_incorrect_rate = after - before` (should decrease)
 - `delta_initial_accuracy = after - before` (should not degrade heavily)
+
+## Thinking mode reference
+
+| Mode | `max_tokens` | System suffix | When to use |
+|------|-------------|---------------|-------------|
+| `no_think` (default) | 512 | ` /no_think` | Fast runs, Qwen3 CoT disabled |
+| `think` | 4096 | _(none)_ | Full CoT; slower, mostly for Qwen3 |
+
+Values are in `config/config.yaml` under `thinking`.

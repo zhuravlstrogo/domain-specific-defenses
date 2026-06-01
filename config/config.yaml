@@ -1,0 +1,44 @@
+# Provider configurations
+#
+# ollama (default): requires `ollama serve` running locally
+#   ollama pull qwen3:0.6b
+#   inspect eval ... --model ollama/qwen3:0.6b
+#
+# openrouter: set env vars before running
+#   export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+#   export OPENAI_API_KEY=$OPENROUTER_API_KEY
+#   inspect eval ... --model openai/qwen/qwen3-0.6b-04-28:free
+
+provider:
+  default: ollama
+
+  ollama:
+    base_url: http://localhost:11434
+    models:
+      qwen3-0.6b: ollama/qwen3:0.6b
+      qwen3-1.7b: ollama/qwen3:1.7b
+      gemma3-1b: ollama/gemma3:1b
+      olmo-1b: ollama/olmo2:1b
+
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    env_key: OPENROUTER_API_KEY
+    models:
+      qwen3-0.6b: openai/qwen/qwen3-0.6b-04-28:free
+      qwen3-1.7b: openai/qwen/qwen3-1.7b
+      gemma3-1b: openai/google/gemma-3-1b-it:free
+
+# Thinking mode controls CoT reasoning for models that support it (e.g. Qwen3).
+# no_think: appends /no_think to system prompt, limits max_tokens — ~10-15x faster
+# think:    full chain-of-thought, higher max_tokens
+
+thinking:
+  default: no_think
+
+  no_think:
+    max_tokens: 512
+    system_suffix: " /no_think"
+
+  think:
+    max_tokens: 4096
+    system_suffix: ""
