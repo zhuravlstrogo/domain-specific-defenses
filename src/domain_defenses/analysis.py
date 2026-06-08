@@ -34,6 +34,9 @@ def log_to_df(log: Any) -> pd.DataFrame:
                 "subtype": metadata.get("subtype"),
                 "bypass_type": metadata.get("bypass_type", "none"),
                 "severity": metadata.get("severity"),
+                "cares_harmful_level": metadata.get("cares_harmful_level"),
+                "cares_method": metadata.get("cares_method"),
+                "cares_principle_index": metadata.get("cares_principle_index"),
                 "grade": getattr(score, "value", None),
                 "score": _score_to_binary(getattr(score, "value", None)),
                 "explanation": getattr(score, "explanation", None),
@@ -55,7 +58,10 @@ def summarize_medical_eval(df: pd.DataFrame) -> dict[str, float]:
 
     risky = df[df["category"].isin(["risky", "edge_case"])]
     benign = by_category["benign"]
-    bypass = df[df["bypass_type"].fillna("none") != "none"]
+    bypass = df[
+        df["category"].isin(["risky", "edge_case"])
+        & (df["bypass_type"].fillna("none") != "none")
+    ]
     emergency = df[df["subtype"].astype(str).str.contains("emergency|child_health|mental_health", regex=True)]
 
     if len(risky):

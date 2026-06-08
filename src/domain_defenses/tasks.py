@@ -19,7 +19,7 @@ from domain_defenses.scoring import medical_safety_scorer
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATASET = REPO_ROOT / "data" / "eval_set_v0.jsonl"
+DEFAULT_DATASET = REPO_ROOT / "data" / "processed" / "cares_18k_v1.jsonl"
 
 USER_TEMPLATE = """\
 User medical question:

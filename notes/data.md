@@ -322,3 +322,49 @@ Bypass:
 - имеет понятный `expected_behavior`;
 - не требует от evaluator быть врачом для базовой оценки safety behavior;
 - может быть расширен без изменения схемы.
+
+
+Лучший основной кандидат: CARES-18K. Он прямо создан для clinical/healthcare safety and adversarial
+  robustness: 18,478 prompts, 8 medical safety principles, harm levels 0..3, методы direct, indirect,
+  obfuscate, role_play. Это хорошо ложится на твои метрики:
+
+  - safety: unsafe pass rate на harmful_level > 0;
+  - false positives: refusal rate на harmful_level == 0;
+  - jailbreak robustness: сравнить direct vs role_play/indirect/obfuscate;
+  - utility: helpful non-refusal на safe prompts.
+
+  Минус: оценка уже не exact match. Нужен LLM-as-judge или рубрика + rule-based checks.
+
+  Второй сильный вариант: MedSafetyBench. В репозитории есть 1,800 medical safety demonstrations: harmful
+  request + safe response; test set 900, плюс 74,374 harmful requests как дополнительный ресурс. Это лучше для
+  direct_harmful_request и проверки, что защита не только ловит CARES-стиль. Минус: меньше структуры по
+  jailbreak-методам и хуже для false positives.
+
+  Для false positives/over-refusal отдельно: Health-ORSC-Bench. Он специально про over-refusal и safe
+  completion в health context: 31,920 benign boundary prompts, категории вроде self-harm, drug abuse,
+  misinformation, unqualified medical advice. Это почти идеально под вопрос: "защита стала безопаснее или
+  просто начала отказывать на пограничных, но допустимых запросах?"
+
+  Для более реалистичной utility/safety оценки: HealthBench. Там 5,000 realistic health conversations, multi-
+  turn/multilingual, с physician-written rubrics; сделано с 262 physicians из 60 стран. Это качественно ближе
+  всего к реальному медицинскому ассистенту, но дороже по инфраструктуре: нужны рубрики, judge, больше
+  токенов.
+
+  Если хочешь именно prompt injection / RAG threat model: MPIB. Это Medical Prompt Injection Benchmark: 9,697
+  clinically grounded adversarial samples из MedQA и PubMedQA. Хорошо подходит, если в проекте будут retrieval
+  constraints, tool/RAG defenses, indirect injection.
+
+  Для маленького qualitative stress-test: Red-Teaming Medical AI. Свежий preprint с taxonomy: 8 categories, 24
+  sub-strategies, 160 adversarial prompts и raw model response data. Я бы использовал как источник сценариев,
+  но не как основной статистический benchmark: слишком маленький и preprint.
+
+  Рекомендация
+
+  Я бы собрал eval suite из трех блоков:
+
+  1. CARES-18K как основной safety/jailbreak benchmark.
+  2. Health-ORSC-Bench или небольшой hand-curated benign/edge subset для false positives/over-refusal.
+  3. Текущий MedQA MultiTurnRobust как exact-match utility/robustness control.
+
+  Если времени мало: CARES + текущий MedQA. Если нужно лучше покрыть false positives, добавить Health-ORSC.
+  Если проект уйдет в RAG/prompt injection, заменить или дополнить CARES блоком MPIB.

@@ -51,6 +51,48 @@ python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cu1
 python -m pip install --upgrade 'transformers>=4.51,<4.57' accelerate
 ```
 
+Если `pip` долго висит на dependency resolving или сеть до PyPI нестабильна, сделайте быстрый downgrade конкретного пакета без resolver. Это обычно достаточно, если зависимости уже были установлены вместе с `transformers 5.x`:
+
+```bash
+python -m pip uninstall -y transformers
+python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 120 --retries 10 transformers==4.56.2
+python -m pip check
+python -c "import torch, transformers; print(torch.__version__, torch.version.cuda); print(transformers.__version__)"
+```
+
+Если `pypi.org` таймаутится даже с большим timeout, повторите установку через зеркало:
+
+```bash
+python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 --retries 10 \
+  -i https://pypi.tuna.tsinghua.edu.cn/simple \
+  transformers==4.56.2
+```
+
+Та же команда в одну строку, если shell ломает многострочный ввод:
+
+```bash
+python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 --retries 10 -i https://pypi.tuna.tsinghua.edu.cn/simple transformers==4.56.2
+```
+
+После установки с `--no-deps` проверьте импорт. Если ошибка говорит, что `huggingface-hub>=0.34.0,<1.0 is required`, установите совместимые зависимости отдельно:
+
+```bash
+python -m pip install --no-cache-dir --progress-bar off --timeout 300 --retries 10 -i https://pypi.tuna.tsinghua.edu.cn/simple "huggingface-hub>=0.34.0,<1.0" "tokenizers>=0.22.0,<=0.23.0" "safetensors>=0.4.3"
+python -c "import torch, transformers; print(torch.__version__, torch.version.cuda); print(transformers.__version__)"
+```
+
+Альтернативные индексы:
+
+```bash
+python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 --retries 10 \
+  -i https://mirrors.aliyun.com/pypi/simple \
+  transformers==4.56.2
+
+python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 --retries 10 \
+  -i https://pypi.mirrors.ustc.edu.cn/simple \
+  transformers==4.56.2
+```
+
 ## Установка NVIDIA driver
 
 Если `nvidia-smi` не найден, но `ubuntu-drivers devices` показывает NVIDIA GPU, установите рекомендованный драйвер и перезагрузите VM.

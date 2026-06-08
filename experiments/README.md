@@ -5,6 +5,8 @@
 Основная задача:
 
 ```bash
+python scripts/prepare_cares_dataset.py --split test --limit 300 --seed 42
+
 inspect eval experiments/medical_safety_eval.py@medical_safety \
   --model ollama/llama2 \
   --limit 5 \
@@ -20,6 +22,9 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 - `guardrail_style`
 - `mcq_prompt_policy`
 - `qwen3_guardrail`
+
+`medical_safety` по умолчанию читает `data/processed/cares_18k_v1.jsonl`,
+подготовленный из `HFXM/CARES-18K`.
 
 `qwen3_guardrail` использует отдельную guard-модель вокруг основной модели:
 
