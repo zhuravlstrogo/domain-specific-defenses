@@ -56,7 +56,7 @@ runtime:
 
     model_args:
       device: cuda:0
-      torch_dtype: float16
+      dtype: float16
       trust_remote_code: true
       do_sample: false
       batch_size: 4

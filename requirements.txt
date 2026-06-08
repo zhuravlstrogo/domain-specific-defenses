@@ -1,7 +1,7 @@
 inspect-ai
 openai
 torch
-transformers
+transformers>=4.51,<4.57
 accelerate
 pandas
 numpy

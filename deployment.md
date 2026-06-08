@@ -11,7 +11,7 @@
 - RAM: 16 GB
 - Disk: 60 GB
 
-Этого достаточно для `Qwen/Qwen3-0.6B` как основной модели и `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `torch_dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. Для `qwen3-1.7b` тоже должно хватить, но при OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
+Этого достаточно для `Qwen/Qwen3-0.6B` как основной модели и `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. Для `qwen3-1.7b` тоже должно хватить, но при OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
 
 Запрашивайте больше ресурсов, если переходите на 7B+ модели или хотите держать несколько vLLM-серверов одновременно:
 
@@ -38,11 +38,90 @@ python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch
 python -m pip install -r requirements.txt
 ```
 
+Проверьте версии ML-зависимостей:
+
+```bash
+python -c "import torch, transformers; print(torch.__version__, torch.version.cuda); print(transformers.__version__)"
+```
+
+Если запуск падает с ошибкой `module 'torch' has no attribute 'float8_e8m0fnu'`, значит установлена слишком новая версия `transformers` для текущего PyTorch. Переустановите совместимую версию:
+
+```bash
+python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cu121 torch
+python -m pip install --upgrade 'transformers>=4.51,<4.57' accelerate
+```
+
+## Установка NVIDIA driver
+
+Если `nvidia-smi` не найден, но `ubuntu-drivers devices` показывает NVIDIA GPU, установите рекомендованный драйвер и перезагрузите VM.
+
+```bash
+sudo apt update
+sudo apt install -y ubuntu-drivers-common
+ubuntu-drivers devices
+```
+
+Для GPU A2/A16 на Ubuntu 24.04 `ubuntu-drivers devices` может показать, например:
+
+```text
+model    : GA107GL [A2 / A16]
+driver   : nvidia-driver-595-open - distro non-free recommended
+driver   : nvidia-driver-580 - distro non-free
+driver   : nvidia-driver-535 - distro non-free
+driver   : xserver-xorg-video-nouveau - distro free builtin
+```
+
+В этом случае ставьте рекомендованный пакет:
+
+```bash
+sudo apt install -y nvidia-driver-595-open
+sudo reboot
+```
+
+Если рекомендованный `*-open` драйвер не загружается на конкретном cloud image, используйте обычный server-драйвер той же ветки:
+
+```bash
+sudo apt install -y nvidia-driver-595-server
+sudo reboot
+```
+
+Сообщения вида `udevadm hwdb is deprecated` и `ERROR:root:aplay command not found` при `ubuntu-drivers devices` не критичны для CUDA-инференса, если NVIDIA GPU отображается в списке устройств.
+
 Проверка CUDA:
 
 ```bash
 nvidia-smi
 python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+```
+
+Если после установки драйвера `nvidia-smi` пишет `couldn't communicate with the NVIDIA driver`, значит пакет установлен, но kernel module не загрузился. Сначала соберите диагностику:
+
+```bash
+uname -r
+dkms status
+lsmod | grep -E 'nvidia|nouveau' || true
+sudo modprobe nvidia
+journalctl -k -b | grep -iE 'nvidia|nouveau|nvrm|secure|dkms' | tail -n 80
+```
+
+На cloud image чаще всего помогает установка headers/build tools и переход с `*-open` на обычный server-драйвер:
+
+```bash
+sudo apt update
+sudo apt install -y "linux-headers-$(uname -r)" build-essential
+sudo apt purge -y 'nvidia-*' 'libnvidia-*'
+sudo apt autoremove -y
+sudo apt install -y nvidia-driver-595-server
+sudo reboot
+```
+
+Если `nvidia-driver-595-server` тоже не загружается, повторите с более консервативной веткой:
+
+```bash
+sudo apt purge -y 'nvidia-*' 'libnvidia-*'
+sudo apt autoremove -y
+sudo apt install -y nvidia-driver-535-server
+sudo reboot
 ```
 
 При первом запуске Hugging Face скачает веса моделей. Если системный диск маленький или нужен persistent cache:
@@ -83,6 +162,8 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
   --max-samples 4 \
   --log-dir logs
 ```
+
+Важно: при многострочном запуске `\` должен стоять в конце каждой продолжаемой строки. Если первая строка не заканчивается на `\`, shell запустит `inspect eval` без аргументов `-T`, а следующая строка завершится ошибкой `-T: command not found`.
 
 Prompt-policy защита:
 
