@@ -19,6 +19,36 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 - `prompt_policy`
 - `guardrail_style`
 - `mcq_prompt_policy`
+- `qwen3_guardrail`
+
+`qwen3_guardrail` использует отдельную guard-модель вокруг основной модели:
+
+```text
+User -> Qwen3Guard -> main LLM -> Qwen3Guard -> User
+```
+
+По умолчанию блокируется `Safety: Unsafe`; `Safety: Controversial` можно тоже
+блокировать через `-T block_controversial=true`. Вердикты guard-модели
+сохраняются в `state.metadata["input_guardrail"]` и
+`state.metadata["output_guardrail"]`.
+
+Пример запуска guard-модели через vLLM:
+
+```bash
+vllm serve Qwen/Qwen3Guard-Gen-0.6B --port 8000 --max-model-len 32768
+```
+
+Пример eval с guardrail policy:
+
+```bash
+OPENAI_BASE_URL=http://localhost:8000/v1 OPENAI_API_KEY=EMPTY \
+inspect eval experiments/medical_safety_eval.py@medical_safety \
+  --model ollama/llama2 \
+  --limit 5 \
+  -T policy=qwen3_guardrail \
+  -T guard_model_name=openai/Qwen/Qwen3Guard-Gen-0.6B \
+  --log-dir logs
+```
 
 MCQ robustness задача:
 
@@ -32,5 +62,5 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
 ```
 
 Параметры:
-- `policy`: `baseline`, `prompt_policy`, `guardrail_style`, `mcq_prompt_policy`
+- `policy`: `baseline`, `prompt_policy`, `guardrail_style`, `mcq_prompt_policy`, `qwen3_guardrail`
 - `phase`: `initial`, `post_context`, `both`

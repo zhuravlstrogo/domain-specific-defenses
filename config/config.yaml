@@ -1,6 +1,13 @@
-# Provider configurations
+# Provider configurations.
 #
-# ollama (default): requires `ollama serve` running locally
+# t4_hf (default): loads Hugging Face models directly into the Inspect AI
+# process and runs them on CUDA. This profile is sized for a single Tesla T4
+# 16 GB instance (4 CPU, 16 GB RAM).
+#
+#   inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
+#     -T policy=baseline --limit 20 --log-dir logs
+#
+# ollama: requires `ollama serve` running locally
 #   ollama pull qwen3:0.6b
 #   inspect eval ... --model ollama/qwen3:0.6b
 #
@@ -10,7 +17,13 @@
 #   inspect eval ... --model openai/qwen/qwen3-0.6b-04-28:free
 
 provider:
-  default: ollama
+  default: t4_hf
+
+  t4_hf:
+    models:
+      qwen3-0.6b: hf/Qwen/Qwen3-0.6B
+      qwen3-1.7b: hf/Qwen/Qwen3-1.7B
+      qwen3-guard-0.6b: hf/Qwen/Qwen3Guard-Gen-0.6B
 
   ollama:
     base_url: http://localhost:11434
@@ -27,6 +40,37 @@ provider:
       qwen3-0.6b: openai/qwen/qwen3-0.6b-04-28:free
       qwen3-1.7b: openai/qwen/qwen3-1.7b
       gemma3-1b: openai/google/gemma-3-1b-it:free
+
+# Runtime profile used by experiment tasks when --model is not provided.
+# The default profile keeps both the main LLM and Qwen3Guard on the same T4.
+# Increase max_connections/batch_size only after checking nvidia-smi.
+
+runtime:
+  default: t4_hf
+
+  t4_hf:
+    provider: t4_hf
+    main_model: qwen3-0.6b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen3-0.6b
+
+    model_args:
+      device: cuda:0
+      torch_dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 4
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
 
 # Thinking mode controls CoT reasoning for models that support it (e.g. Qwen3).
 # no_think: appends /no_think to system prompt, limits max_tokens — ~10-15x faster

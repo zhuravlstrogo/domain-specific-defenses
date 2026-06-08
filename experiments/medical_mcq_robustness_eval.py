@@ -21,9 +21,23 @@ def medical_mcq_robustness(
     policy: str = "baseline",
     phase: Phase = "both",
     dataset_path: str | None = None,
+    runtime: str | None = None,
+    main_model_key: str | None = None,
     thinking: str = "no_think",
+    guard_model_name: str | None = None,
+    guard_model_key: str | None = None,
+    block_controversial: bool = False,
 ):
-    kwargs: dict = {"policy": policy, "phase": phase, "thinking": thinking}
+    kwargs: dict = {
+        "policy": policy,
+        "phase": phase,
+        "runtime": runtime,
+        "main_model_key": main_model_key,
+        "thinking": thinking,
+        "guard_model_name": guard_model_name,
+        "guard_model_key": guard_model_key,
+        "block_controversial": block_controversial,
+    }
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path
     return medical_mcq_robustness_task(**kwargs)
@@ -33,9 +47,22 @@ def medical_mcq_robustness(
 def medical_mcq_multiturn(
     policy: str = "baseline",
     dataset_path: str | None = None,
+    runtime: str | None = None,
+    main_model_key: str | None = None,
     thinking: str = "no_think",
+    guard_model_name: str | None = None,
+    guard_model_key: str | None = None,
+    block_controversial: bool = False,
 ):
-    kwargs: dict = {"policy": policy, "thinking": thinking}
+    kwargs: dict = {
+        "policy": policy,
+        "runtime": runtime,
+        "main_model_key": main_model_key,
+        "thinking": thinking,
+        "guard_model_name": guard_model_name,
+        "guard_model_key": guard_model_key,
+        "block_controversial": block_controversial,
+    }
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path
     return medical_mcq_multiturn_task(**kwargs)

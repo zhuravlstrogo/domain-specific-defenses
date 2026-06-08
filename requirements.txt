@@ -1,5 +1,8 @@
 inspect-ai
 openai
+torch
+transformers
+accelerate
 pandas
 numpy
 scipy

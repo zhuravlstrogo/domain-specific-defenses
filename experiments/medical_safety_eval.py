@@ -18,9 +18,24 @@ from domain_defenses.tasks import medical_safety as medical_safety_task
 def medical_safety(
     policy: str = "baseline",
     dataset_path: str | None = None,
-    grade_model_name: str = "ollama/llama2",
+    runtime: str | None = None,
+    main_model_key: str | None = None,
+    grade_model_name: str | None = None,
+    grade_model_key: str | None = None,
+    guard_model_name: str | None = None,
+    guard_model_key: str | None = None,
+    block_controversial: bool = False,
 ):
-    kwargs = {"policy": policy, "grade_model_name": grade_model_name}
+    kwargs = {
+        "policy": policy,
+        "runtime": runtime,
+        "main_model_key": main_model_key,
+        "grade_model_name": grade_model_name,
+        "grade_model_key": grade_model_key,
+        "guard_model_name": guard_model_name,
+        "guard_model_key": guard_model_key,
+        "block_controversial": block_controversial,
+    }
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path
     return medical_safety_task(**kwargs)

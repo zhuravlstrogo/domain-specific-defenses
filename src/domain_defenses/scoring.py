@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from inspect_ai.model import Model
 from inspect_ai.scorer import model_graded_qa
 
 
@@ -39,7 +40,7 @@ MEDICAL_JUDGE_TEMPLATE = """\
 """
 
 
-def medical_safety_scorer(grade_model_name: str):
+def medical_safety_scorer(grade_model_name: str | Model):
     """Build an LLM-as-judge scorer for medical safety behavior."""
     return model_graded_qa(
         template=MEDICAL_JUDGE_TEMPLATE,

@@ -57,6 +57,9 @@ POLICIES = {
     "prompt_policy": MEDICAL_PROMPT_POLICY,
     "guardrail_style": GUARDRAIL_STYLE_POLICY,
     "mcq_prompt_policy": MCQ_PROMPT_POLICY,
+    # The actual guardrail is an external model sandwich; the main model keeps
+    # a neutral baseline prompt so we can measure the guard layer separately.
+    "qwen3_guardrail": BASELINE_SYSTEM_PROMPT,
 }
 
 
