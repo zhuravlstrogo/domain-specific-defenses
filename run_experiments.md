@@ -9,16 +9,24 @@
 Основная матрица:
 
 ```text
-configs/experiments/cares_qwen3_0_6b.yaml
+configs/experiments/cares_qwen2_5_7b.yaml
 ```
 
-Альтернативные model-specific matrix configs:
+Capacity-matched `~7B` model-specific matrix configs:
 
 ```text
-configs/experiments/cares_gemma3_1b.yaml
-configs/experiments/cares_gemma3_3b.yaml
+configs/experiments/cares_qwen2_5_7b.yaml
+configs/experiments/cares_gemma_7b.yaml
 configs/experiments/cares_olmo_7b.yaml
 ```
+
+Для корректного сравнения между моделями лучше держать размер основной модели
+примерно одинаковым. Для Qwen используется точная `qwen2.5:7b`; у `Gemma 3` нет
+7B-варианта, поэтому для capacity-matched сравнения используется предыдущая
+`Gemma` `gemma:7b`. Small-model конфиги
+`cares_qwen3_0_6b.yaml`, `cares_gemma3_1b.yaml` и `cares_gemma3_3b.yaml`
+оставлены для отдельных sanity/small-model прогонов, но их не стоит смешивать с
+`~7B` результатами без явного caveat.
 
 Она запускает все текущие условия на одном и том же sample set:
 
@@ -85,11 +93,12 @@ export HF_DATASETS_CACHE=/data/hf-cache/datasets
 huggingface-cli login
 ```
 
-## 1.4. Проверить Ollama Для Gemma/OLMo
+## 1.4. Проверить Ollama Для Qwen/Gemma/OLMo
 
-Конфиги `cares_gemma3_1b.yaml`, `cares_gemma3_3b.yaml` и `cares_olmo_7b.yaml`
+Конфиги `cares_qwen2_5_7b.yaml`, `cares_gemma_7b.yaml` и `cares_olmo_7b.yaml`
 используют Ollama для основной модели. Перед запуском такого конфига сервис
-должен быть поднят, а модель должна быть скачана.
+должен быть поднят, а модель должна быть скачана. Small-model Ollama-конфиги
+`cares_gemma3_1b.yaml` и `cares_gemma3_3b.yaml` требуют тех же действий.
 
 Проверить Ollama:
 
@@ -111,14 +120,16 @@ ollama serve
 Скачать нужные модели:
 
 ```bash
-ollama pull gemma3:1b
-ollama pull gemma3:3b
+ollama pull qwen2.5:7b
+ollama pull gemma:7b
 ollama pull olmo2:7b
 ```
 
 Быстрая проверка перед experiment run:
 
 ```bash
+ollama run qwen2.5:7b "hello"
+ollama run gemma:7b "hello"
 ollama run olmo2:7b "hello"
 ```
 
@@ -170,7 +181,7 @@ wc -l data/processed/cares_18k_v1.jsonl
 Перед долгим запуском на сервере сделай dry run:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 DRY_RUN=1 \
 bash scripts/run_cares_experiments.sh
 ```
@@ -191,27 +202,17 @@ qwen3_guardrail
 Основной запуск:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Gemma 3 1B:
+Gemma 7B:
 
 ```bash
-CONFIG=configs/experiments/cares_gemma3_1b.yaml \
-LIMIT=100 \
-DATASET_SIZE=300 \
-SEED=42 \
-bash scripts/run_cares_experiments.sh
-```
-
-Gemma 3 3B:
-
-```bash
-CONFIG=configs/experiments/cares_gemma3_3b.yaml \
+CONFIG=configs/experiments/cares_gemma_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -228,7 +229,29 @@ SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Для Gemma/OLMo сначала должен работать `ollama serve`; иначе `inspect eval`
+Small-model sanity runs, если нужны отдельно:
+
+```bash
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+bash scripts/run_cares_experiments.sh
+
+CONFIG=configs/experiments/cares_gemma3_1b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+bash scripts/run_cares_experiments.sh
+
+CONFIG=configs/experiments/cares_gemma3_3b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+bash scripts/run_cares_experiments.sh
+```
+
+Для Qwen/Gemma/OLMo через Ollama сначала должен работать `ollama serve`; иначе `inspect eval`
 будет ждать или упадет при первом обращении к main model.
 
 Pipeline делает следующее:
@@ -248,7 +271,7 @@ Pipeline делает следующее:
 Если нужно принудительно пересобрать локальный JSONL:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 PREPARE_DATASET=always \
 DATASET_SIZE=300 \
 bash scripts/run_cares_experiments.sh
@@ -259,7 +282,7 @@ bash scripts/run_cares_experiments.sh
 ```bash
 tmux new -s cares-defenses
 source .venv/bin/activate
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -352,7 +375,7 @@ python scripts/report_medical_safety_metrics.py \
 
 | Переменная | Default | Значение |
 |---|---|---|
-| `CONFIG` | `configs/experiments/cares_qwen3_0_6b.yaml` | experiment matrix |
+| `CONFIG` | `configs/experiments/cares_qwen2_5_7b.yaml` | experiment matrix |
 | `LIMIT` | config value | сколько samples запускать в eval |
 | `SEED` | config value | seed для `--sample-shuffle` |
 | `DATASET_PATH` | config value | путь к prepared JSONL |
@@ -378,7 +401,7 @@ OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
 Пример с фиксированным именем артефактов:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
 REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
 REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
@@ -389,7 +412,7 @@ bash scripts/run_cares_experiments.sh
 увеличь jitter:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -403,9 +426,9 @@ bash scripts/run_cares_experiments.sh
 После успешного запуска:
 
 ```text
-reports/results/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100.md
-reports/results/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100.csv
-logs/cares/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100/manifest.json
+reports/results/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md
+reports/results/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv
+logs/cares/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/manifest.json
 ```
 
 Основные метрики:
@@ -456,6 +479,6 @@ bash scripts/run_cares_experiments.sh
 Полная матрица со всеми текущими defenses:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```

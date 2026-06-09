@@ -17,7 +17,7 @@ if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     export OPENROUTER_BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
 fi
 
-CONFIG="${CONFIG:-configs/experiments/cares_qwen3_0_6b.yaml}"
+CONFIG="${CONFIG:-configs/experiments/cares_qwen2_5_7b.yaml}"
 
 args=(python scripts/run_experiment_matrix.py "$CONFIG")
 

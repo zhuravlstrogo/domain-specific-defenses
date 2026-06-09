@@ -8,8 +8,8 @@
 #     -T policy=baseline --limit 20 --log-dir logs
 #
 # ollama: requires `ollama serve` running locally
-#   ollama pull qwen3:0.6b
-#   inspect eval ... --model ollama/qwen3:0.6b
+#   ollama pull qwen2.5:7b
+#   inspect eval ... --model ollama/qwen2.5:7b
 #
 # openrouter: set env vars before running
 #   export OPENAI_BASE_URL=https://openrouter.ai/api/v1
@@ -31,6 +31,8 @@ provider:
     models:
       qwen3-0.6b: ollama/qwen3:0.6b
       qwen3-1.7b: ollama/qwen3:1.7b
+      qwen2.5-7b: ollama/qwen2.5:7b
+      gemma-7b: ollama/gemma:7b
       gemma3-1b: ollama/gemma3:1b
       gemma3-3b: ollama/gemma3:3b
       olmo-7b: ollama/olmo2:7b
@@ -128,11 +130,63 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
+  ollama_gemma_7b_openrouter_judge:
+    provider: ollama
+    guard_provider: t4_hf
+    grade_provider: openrouter
+    main_model: gemma-7b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    guard_model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 1
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
   ollama_gemma3_3b_openrouter_judge:
     provider: ollama
     guard_provider: t4_hf
     grade_provider: openrouter
     main_model: gemma3-3b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    guard_model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 1
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  ollama_qwen2_5_7b_openrouter_judge:
+    provider: ollama
+    guard_provider: t4_hf
+    grade_provider: openrouter
+    main_model: qwen2.5-7b
     guard_model: qwen3-guard-0.6b
     grade_model: qwen-2.5-72b-instruct
 

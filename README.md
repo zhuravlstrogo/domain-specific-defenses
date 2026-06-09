@@ -11,10 +11,12 @@ configs/
   config.yaml                     # provider/runtime/model profiles
   cares_experiment_runs.tsv       # static run config for manual reporting
   experiments/
-    cares_qwen3_0_6b.yaml          # reproducible experiment matrix
-    cares_gemma3_1b.yaml           # reproducible experiment matrix
-    cares_gemma3_3b.yaml           # reproducible experiment matrix
-    cares_olmo_7b.yaml             # reproducible experiment matrix
+    cares_qwen2_5_7b.yaml          # capacity-matched ~7B experiment matrix
+    cares_gemma_7b.yaml            # capacity-matched ~7B experiment matrix
+    cares_olmo_7b.yaml             # capacity-matched ~7B experiment matrix
+    cares_qwen3_0_6b.yaml          # small-model experiment matrix
+    cares_gemma3_1b.yaml           # small-model experiment matrix
+    cares_gemma3_3b.yaml           # small-model experiment matrix
     cares_policy_prompts_qwen3_0_6b.yaml # prompt-only comparison matrix
 
 experiments/
@@ -65,20 +67,30 @@ bash scripts/run_cares_experiments.sh
 Полная матрица `baseline` + все текущие защиты:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
 Та же схема для других моделей:
 
 ```bash
+CONFIG=configs/experiments/cares_gemma_7b.yaml \
+bash scripts/run_cares_experiments.sh
+
+CONFIG=configs/experiments/cares_olmo_7b.yaml \
+bash scripts/run_cares_experiments.sh
+```
+
+Small-model sanity runs остаются доступными отдельно:
+
+```bash
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
+
 CONFIG=configs/experiments/cares_gemma3_1b.yaml \
 bash scripts/run_cares_experiments.sh
 
 CONFIG=configs/experiments/cares_gemma3_3b.yaml \
-bash scripts/run_cares_experiments.sh
-
-CONFIG=configs/experiments/cares_olmo_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -86,7 +98,7 @@ bash scripts/run_cares_experiments.sh
 
 ```bash
 python scripts/run_experiment_matrix.py \
-  configs/experiments/cares_qwen3_0_6b.yaml
+  configs/experiments/cares_qwen2_5_7b.yaml
 ```
 
 Runner делает весь pipeline:
@@ -136,7 +148,7 @@ sample set.
 
 ```bash
 python scripts/run_experiment_matrix.py \
-  configs/experiments/cares_qwen3_0_6b.yaml \
+  configs/experiments/cares_qwen2_5_7b.yaml \
   --dry-run
 ```
 
@@ -144,7 +156,7 @@ python scripts/run_experiment_matrix.py \
 
 ```bash
 python scripts/run_experiment_matrix.py \
-  configs/experiments/cares_qwen3_0_6b.yaml \
+  configs/experiments/cares_qwen2_5_7b.yaml \
   --limit 50 \
   --sample-shuffle 7 \
   --dataset-size 300 \
