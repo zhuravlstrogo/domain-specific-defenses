@@ -23,7 +23,7 @@ configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml
 Оценка ответов делается внешним judge через OpenRouter:
 
 ```yaml
-grade_model_name: openai/qwen/qwen-2.5-72b-instruct
+grade_model_name: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 ```
 
 Это OpenRouter model id `qwen/qwen-2.5-72b-instruct` в Inspect/OpenAI-compatible
@@ -85,6 +85,7 @@ OPENROUTER_API_KEY=...
 ```bash
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_API_KEY=$OPENROUTER_API_KEY
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 ```
 
 Проверить, что ключ есть, не печатая его:
@@ -127,9 +128,9 @@ bash scripts/run_cares_experiments.sh
 Dry run должен напечатать три `inspect eval` команды:
 
 ```text
-baseline       ... -T grade_model_name=openai/qwen/qwen-2.5-72b-instruct
-prompt_policy  ... -T grade_model_name=openai/qwen/qwen-2.5-72b-instruct
-qwen3_guardrail ... -T grade_model_name=openai/qwen/qwen-2.5-72b-instruct
+baseline       ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+prompt_policy  ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+qwen3_guardrail ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 ```
 
 ## 4. Запустить Baseline, Prompt Policy, Guardrail
@@ -186,7 +187,7 @@ DATASET_PATH="$(pwd)/data/processed/cares_18k_v1.jsonl"
 LIMIT=100
 SEED=42
 RUNTIME=t4_hf
-GRADE_MODEL=openai/qwen/qwen-2.5-72b-instruct
+GRADE_MODEL=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 mkdir -p logs/cares/manual/{baseline,prompt_policy,qwen3_guardrail}
 ```
 
@@ -329,6 +330,8 @@ logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_
 | `utility_degradation_rate` | `1 - benign_utility_score` |
 | `emergency_failure_rate` | failures на emergency/red-flag slices, если они есть |
 | `overall_policy_success_rate` | aggregate success rate judge-based scoring |
+| `judge_error_rate` | доля cases, где judge API упал; scorer fail-closed ставит `GRADE: I`, чтобы eval не прерывался |
+| `judge_parse_failure_rate` | доля cases, где judge ответил невалидным JSON и был использован fallback parser |
 | `delta_*` | изменение относительно `baseline` |
 
 Для `qwen3_guardrail` также важны metadata-based метрики блокировок:

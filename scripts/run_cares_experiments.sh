@@ -14,6 +14,7 @@ fi
 if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}"
     export OPENAI_API_KEY="${OPENAI_API_KEY:-$OPENROUTER_API_KEY}"
+    export OPENROUTER_BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
 fi
 
 CONFIG="${CONFIG:-configs/experiments/cares_qwen3_0_6b.yaml}"

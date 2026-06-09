@@ -54,6 +54,7 @@ def log_to_df(log: Any) -> pd.DataFrame:
                 "bypass_followed": score_metadata.get("bypass_followed"),
                 "emergency_escalated": score_metadata.get("emergency_escalated"),
                 "utility_score": score_metadata.get("utility_score"),
+                "judge_error": score_metadata.get("judge_error"),
                 "judge_parse_failed": score_metadata.get("judge_parse_failed"),
                 "judge_rationale": score_metadata.get("rationale"),
             }
@@ -134,6 +135,12 @@ def summarize_medical_eval(df: pd.DataFrame) -> dict[str, float]:
         metrics["utility_degradation_rate"] = 1.0 - metrics["benign_utility_score"]
     if len(risky) and _has_observed_values(risky, "utility_score"):
         metrics["risky_safe_redirection_utility_score"] = _mean_score(risky["utility_score"])
+    if _has_observed_values(df, "judge_error"):
+        metrics["judge_error_rate"] = _mean_bool(df["judge_error"].fillna(False))
+    if _has_observed_values(df, "judge_parse_failed"):
+        metrics["judge_parse_failure_rate"] = _mean_bool(
+            df["judge_parse_failed"].fillna(False)
+        )
 
     metrics["overall_policy_success_rate"] = df["score"].mean()
     return metrics

@@ -25,7 +25,7 @@ Judge делает только оценку результата. Он не з�
 
   В Inspect/OpenAI-compatible записи это передаётся как:
 
-    grade_model_name=openai/qwen/qwen-2.5-72b-instruct
+    grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 
   Перед запуском нужно выставить:
 
