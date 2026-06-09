@@ -97,6 +97,51 @@ python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 
   transformers==4.56.2
 ```
 
+## Установка Ollama
+
+Ollama нужен только для runtime-профилей, где `provider: ollama`, например
+`cares_gemma3_1b.yaml`, `cares_gemma3_3b.yaml` и `cares_olmo_7b.yaml`. Для
+`cares_qwen3_0_6b.yaml` основной инференс идет через Hugging Face, и Ollama не
+требуется.
+
+Установить Ollama на Linux VM:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Проверить установку:
+
+```bash
+which ollama
+ollama --version
+```
+
+Поднять сервис в отдельном `tmux` pane/session:
+
+```bash
+ollama serve
+```
+
+В другом терминале скачайте модель, которую задает experiment config:
+
+```bash
+ollama pull gemma3:1b
+ollama pull gemma3:3b
+ollama pull olmo2:7b
+```
+
+Проверить, что модель отвечает:
+
+```bash
+ollama run olmo2:7b "hello"
+ollama ps
+ollama list
+```
+
+Если `ollama` не найден после установки, откройте новый shell или проверьте,
+что `/usr/local/bin` есть в `PATH`.
+
 ## Установка NVIDIA driver
 
 Если `nvidia-smi` не найден, но `ubuntu-drivers devices` показывает NVIDIA GPU, для Tesla T4 ставьте server-драйвер и перезагрузите VM.

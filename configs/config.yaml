@@ -33,7 +33,7 @@ provider:
       qwen3-1.7b: ollama/qwen3:1.7b
       gemma3-1b: ollama/gemma3:1b
       gemma3-3b: ollama/gemma3:3b
-      olmo-1b: ollama/olmo2:1b
+      olmo-7b: ollama/olmo2:7b
 
   openrouter:
     base_url: https://openrouter.ai/api/v1
@@ -154,11 +154,11 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  ollama_olmo_1b_openrouter_judge:
+  ollama_olmo_7b_openrouter_judge:
     provider: ollama
     guard_provider: t4_hf
     grade_provider: openrouter
-    main_model: olmo-1b
+    main_model: olmo-7b
     guard_model: qwen3-guard-0.6b
     grade_model: qwen-2.5-72b-instruct
 

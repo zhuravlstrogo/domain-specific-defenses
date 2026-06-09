@@ -185,7 +185,7 @@ LessWrong-ценность здесь не в leaderboard, а в том, что 
 
 - `ollama/qwen3:0.6b`
 - `ollama/gemma3:1b`
-- `ollama/olmo2:1b`
+- `ollama/olmo2:7b`
 
 Желательно добавить одну более сильную reference model, если бюджет позволяет. Иначе статья будет про "small local medical safety eval", что нормально, но выводы нужно ограничить.
 

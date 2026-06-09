@@ -14,7 +14,7 @@ configs/
     cares_qwen3_0_6b.yaml          # reproducible experiment matrix
     cares_gemma3_1b.yaml           # reproducible experiment matrix
     cares_gemma3_3b.yaml           # reproducible experiment matrix
-    cares_olmo_1b.yaml             # reproducible experiment matrix
+    cares_olmo_7b.yaml             # reproducible experiment matrix
     cares_policy_prompts_qwen3_0_6b.yaml # prompt-only comparison matrix
 
 experiments/
@@ -78,7 +78,7 @@ bash scripts/run_cares_experiments.sh
 CONFIG=configs/experiments/cares_gemma3_3b.yaml \
 bash scripts/run_cares_experiments.sh
 
-CONFIG=configs/experiments/cares_olmo_1b.yaml \
+CONFIG=configs/experiments/cares_olmo_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 

@@ -17,7 +17,7 @@ configs/experiments/cares_qwen3_0_6b.yaml
 ```text
 configs/experiments/cares_gemma3_1b.yaml
 configs/experiments/cares_gemma3_3b.yaml
-configs/experiments/cares_olmo_1b.yaml
+configs/experiments/cares_olmo_7b.yaml
 ```
 
 Она запускает все текущие условия на одном и том же sample set:
@@ -83,6 +83,43 @@ export HF_DATASETS_CACHE=/data/hf-cache/datasets
 
 ```bash
 huggingface-cli login
+```
+
+## 1.4. Проверить Ollama Для Gemma/OLMo
+
+Конфиги `cares_gemma3_1b.yaml`, `cares_gemma3_3b.yaml` и `cares_olmo_7b.yaml`
+используют Ollama для основной модели. Перед запуском такого конфига сервис
+должен быть поднят, а модель должна быть скачана.
+
+Проверить Ollama:
+
+```bash
+which ollama
+ollama --version
+ollama ps
+ollama list
+```
+
+Если `ollama` не установлен, установи его по инструкции из `deployment.md`.
+
+Поднять сервис в отдельном `tmux` pane/session:
+
+```bash
+ollama serve
+```
+
+Скачать нужные модели:
+
+```bash
+ollama pull gemma3:1b
+ollama pull gemma3:3b
+ollama pull olmo2:7b
+```
+
+Быстрая проверка перед experiment run:
+
+```bash
+ollama run olmo2:7b "hello"
 ```
 
 ## 1.5. Проверить OpenRouter Judge
@@ -181,15 +218,18 @@ SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-OLMo 1B:
+OLMo 7B:
 
 ```bash
-CONFIG=configs/experiments/cares_olmo_1b.yaml \
+CONFIG=configs/experiments/cares_olmo_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
+
+Для Gemma/OLMo сначала должен работать `ollama serve`; иначе `inspect eval`
+будет ждать или упадет при первом обращении к main model.
 
 Pipeline делает следующее:
 
