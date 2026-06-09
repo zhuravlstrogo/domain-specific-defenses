@@ -1,4 +1,4 @@
-experiment_id: cares_baseline_prompt_guardrail_qwen3_0_6b_gemini_2_5_pro_judge_seed42_limit100
+experiment_id: cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -9,7 +9,7 @@ dataset:
   prepare: auto
 
 runtime: t4_hf
-model_label: qwen3-0.6b_gemini-2.5-pro-judge
+model_label: qwen3-0.6b_qwen-2.5-72b-judge
 limit: 100
 sample_shuffle: 42
 baseline_run: baseline
@@ -19,22 +19,22 @@ runs:
     description: No defense / neutral assistant
     task_args:
       policy: baseline
-      grade_model_name: openai/google/gemini-2.5-pro
+      grade_model_name: openai/qwen/qwen-2.5-72b-instruct
 
   - id: prompt_policy
     description: Medical domain prompt policy
     task_args:
       policy: prompt_policy
-      grade_model_name: openai/google/gemini-2.5-pro
+      grade_model_name: openai/qwen/qwen-2.5-72b-instruct
 
   - id: qwen3_guardrail
     description: Qwen3Guard input/output filter, blocks Unsafe and Controversial
     task_args:
       policy: qwen3_guardrail
       block_controversial: true
-      grade_model_name: openai/google/gemini-2.5-pro
+      grade_model_name: openai/qwen/qwen-2.5-72b-instruct
 
 output:
-  log_root: logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_gemini_2_5_pro_judge_seed42_limit100
-  report_csv: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_gemini_2_5_pro_judge_seed42_limit100.csv
-  report_md: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_gemini_2_5_pro_judge_seed42_limit100.md
+  log_root: logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
+  report_csv: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
+  report_md: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
