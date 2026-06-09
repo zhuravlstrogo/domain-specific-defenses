@@ -12,7 +12,9 @@ config/
 
 configs/
   experiments/
+    cares_baseline_prompt_guardrail_qwen3_0_6b.yaml # baseline vs prompt vs guardrail
     cares_qwen3_0_6b.yaml          # reproducible experiment matrix
+    cares_policy_prompts_qwen3_0_6b.yaml # prompt-only comparison matrix
 
 experiments/
   medical_safety_eval.py           # Inspect AI task for CARES medical safety
@@ -49,6 +51,20 @@ notes/
 ## Основной запуск
 
 ```bash
+bash scripts/run_cares_experiments.sh
+```
+
+Prompt-only запуск без внешнего guardrail:
+
+```bash
+CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
+```
+
+Минимальное сравнение `baseline` / `prompt_policy` / `qwen3_guardrail`:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 

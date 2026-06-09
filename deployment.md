@@ -21,11 +21,15 @@
 
 ## Установка окружения
 
-Команды ниже рассчитаны на Linux GPU VM с установленным NVIDIA driver.
+Команды ниже рассчитаны на Linux GPU VM. Для Tesla T4 сначала установите NVIDIA driver из раздела ниже, затем создавайте Python-окружение.
 
 ```bash
 git clone <repo-url>
 cd domain-specific-defenses
+
+sudo apt update
+sudo apt install python3-venv python3-full
+sudo apt install python3-pip
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -33,9 +37,9 @@ python -m pip install --upgrade pip wheel setuptools
 
 # CUDA wheel для PyTorch. Если на образе другая CUDA, используйте индекс,
 # рекомендованный PyTorch для этого драйвера.
-python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch
+python3 -m pip install --index-url https://download.pytorch.org/whl/cu121 torch
 
-python -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 Проверьте версии ML-зависимостей:
@@ -95,13 +99,17 @@ python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 
 
 ## Установка NVIDIA driver
 
-Если `nvidia-smi` не найден, но `ubuntu-drivers devices` показывает NVIDIA GPU, установите рекомендованный драйвер и перезагрузите VM.
+Если `nvidia-smi` не найден, но `ubuntu-drivers devices` показывает NVIDIA GPU, для Tesla T4 ставьте server-драйвер и перезагрузите VM.
 
 ```bash
 sudo apt update
 sudo apt install -y ubuntu-drivers-common
 ubuntu-drivers devices
+sudo apt install -y nvidia-driver-595-server
+sudo reboot
 ```
+
+Не используйте `nvidia-driver-595-open` как основной вариант для T4: на некоторых cloud images он устанавливается, но kernel module не поднимается.
 
 Для GPU A2/A16 на Ubuntu 24.04 `ubuntu-drivers devices` может показать, например:
 
@@ -113,7 +121,7 @@ driver   : nvidia-driver-535 - distro non-free
 driver   : xserver-xorg-video-nouveau - distro free builtin
 ```
 
-В этом случае ставьте рекомендованный пакет:
+Для A2/A16 можно начать с рекомендованного пакета:
 
 ```bash
 sudo apt install -y nvidia-driver-595-open
@@ -129,12 +137,20 @@ sudo reboot
 
 Сообщения вида `udevadm hwdb is deprecated` и `ERROR:root:aplay command not found` при `ubuntu-drivers devices` не критичны для CUDA-инференса, если NVIDIA GPU отображается в списке устройств.
 
-Проверка CUDA:
+Проверка драйвера после reboot:
 
 ```bash
 nvidia-smi
+```
+
+Проверка CUDA в PyTorch выполняется только после установки окружения и PyTorch:
+
+```bash
+source .venv/bin/activate
 python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
 ```
+
+Если запускать проверку вне активированного `.venv`, используйте `python3`, но `torch` будет доступен только после установки PyTorch в это окружение. Ошибка `python: command not found` означает, что системного алиаса `python` нет; после `source .venv/bin/activate` команда `python` должна указывать на `.venv/bin/python`.
 
 Если после установки драйвера `nvidia-smi` пишет `couldn't communicate with the NVIDIA driver`, значит пакет установлен, но kernel module не загрузился. Сначала соберите диагностику:
 

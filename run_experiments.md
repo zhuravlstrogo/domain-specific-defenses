@@ -1,132 +1,127 @@
-# CARES-18K Defense Comparison
+# CARES-18K Defense Experiments
+
+Этот runbook описывает запуск экспериментов с нуля на удаленном GPU-сервере:
+установка окружения, скачивание CARES-18K, запуск `baseline`, `prompt_policy`
+и `qwen3_guardrail`, затем сбор Markdown/CSV отчета.
+
+## Что Запускаем
+
+Основная матрица:
+
+```text
+configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml
+```
+
+Она запускает три условия на одном и том же sample set:
+
+| run_id | policy | Что проверяет |
+|---|---|---|
+| `baseline` | `baseline` | модель без доменной защиты |
+| `prompt_policy` | `prompt_policy` | medical safety policy в system prompt |
+| `qwen3_guardrail` | `qwen3_guardrail` | внешний Qwen3Guard input/output filter |
+
+`qwen3_guardrail` запускается в строгом режиме:
+
+```yaml
+block_controversial: true
+```
+
+## 1. Подготовить Удаленный Сервер
+
+Ожидается Linux-сервер с NVIDIA GPU, CUDA-драйвером, `git`, Python 3.10+ и
+доступом в интернет для Hugging Face downloads.
+
+Проверить GPU:
+
+```bash
+nvidia-smi
+```
+
+Клонировать репозиторий:
+
+```bash
+git clone <REPO_URL> domain-specific-defenses
+cd domain-specific-defenses
+```
+
+Если репозиторий уже есть на сервере:
+
+```bash
+cd domain-specific-defenses
+git pull
+```
+
+Создать virtualenv и поставить зависимости:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Опционально вынести Hugging Face cache на большой диск:
+
+```bash
+mkdir -p /data/hf-cache
+export HF_HOME=/data/hf-cache
+export HF_HUB_CACHE=/data/hf-cache/hub
+export HF_DATASETS_CACHE=/data/hf-cache/datasets
+```
+
+Если Hugging Face в твоем окружении требует авторизацию:
+
+```bash
+huggingface-cli login
+```
+
+## 2. Скачать И Подготовить CARES-18K
+
+Датасет скачивается через `datasets.load_dataset("HFXM/CARES-18K")`.
+Команда ниже скачает split `test`, перемешает его с seed `42` и сохранит
+локальный JSONL для Inspect eval:
+
+```bash
+python scripts/prepare_cares_dataset.py \
+  --dataset-id HFXM/CARES-18K \
+  --split test \
+  --limit 300 \
+  --seed 42 \
+  --output data/processed/cares_18k_v1.jsonl
+```
+
+Проверить файл:
+
+```bash
+wc -l data/processed/cares_18k_v1.jsonl
+```
+
+Для команды выше ожидается `300` строк.
+
+## 3. Проверить Команды Без Запуска Моделей
+
+Перед долгим запуском на сервере сделай dry run:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+DRY_RUN=1 \
+bash scripts/run_cares_experiments.sh
+```
+
+Dry run должен напечатать три `inspect eval` команды:
+
+```text
+baseline
+prompt_policy
+qwen3_guardrail
+```
+
+## 4. Запустить Baseline, Prompt Policy, Guardrail
 
 Основной запуск:
 
 ```bash
-bash scripts/run_cares_experiments.sh
-```
-
-Скрипт делает весь pipeline:
-
-1. готовит `data/processed/cares_18k_v1.jsonl`, если файла еще нет;
-2. читает experiment matrix из `configs/experiments/cares_qwen3_0_6b.yaml`;
-3. запускает `medical_safety` для каждого профиля;
-4. складывает `.eval` логи в отдельные подпапки;
-5. пишет `manifest.json`, generated `run_config.tsv` и общий Markdown/CSV отчет.
-
-По умолчанию запускаются:
-
-| run_id | Что проверяет |
-|---|---|
-| `baseline` | модель без защиты |
-| `prompt_policy` | доменная medical safety policy в system prompt |
-| `guardrail_style` | prompt-policy с внутренней классификацией запроса |
-| `qwen3_guardrail` | внешний Qwen3Guard input/output filter |
-
-Явный запуск без bash wrapper:
-
-```bash
-python scripts/run_experiment_matrix.py configs/experiments/cares_qwen3_0_6b.yaml
-```
-
-## Ручной запуск отдельных защит
-
-Основной способ выше лучше, потому что он запускает все защиты на одном
-`limit`/`sample_shuffle` и сразу собирает общий отчет. Но для debug можно
-запустить отдельные policies вручную.
-
-Сначала подготовить датасет и общие переменные:
-
-```bash
-python scripts/prepare_cares_dataset.py \
-    --split test \
-    --limit 300 \
-    --seed 42 \
-    --output data/processed/cares_18k_v1.jsonl
-
-DATASET_PATH="$(pwd)/data/processed/cares_18k_v1.jsonl"
-LIMIT=100
-SEED=42
-RUNTIME=t4_hf
-mkdir -p logs/cares/manual/{baseline,prompt_policy,guardrail_style,qwen3_guardrail}
-```
-
-### Baseline
-
-```bash
-inspect eval experiments/medical_safety_eval.py@medical_safety \
-    -T runtime="$RUNTIME" \
-    -T dataset_path="$DATASET_PATH" \
-    -T policy=baseline \
-    --limit "$LIMIT" \
-    --sample-shuffle "$SEED" \
-    --log-dir logs/cares/manual/baseline
-```
-
-### Prompt Policy
-
-Доменная medical safety policy в system prompt.
-
-```bash
-inspect eval experiments/medical_safety_eval.py@medical_safety \
-    -T runtime="$RUNTIME" \
-    -T dataset_path="$DATASET_PATH" \
-    -T policy=prompt_policy \
-    --limit "$LIMIT" \
-    --sample-shuffle "$SEED" \
-    --log-dir logs/cares/manual/prompt_policy
-```
-
-### Guardrail-Style Prompt
-
-Prompt-only защита, где модель внутренне классифицирует запрос как
-`BENIGN`, `RISKY`, `EMERGENCY`, `EDGE_CASE` или `BYPASS_ATTEMPT`.
-
-```bash
-inspect eval experiments/medical_safety_eval.py@medical_safety \
-    -T runtime="$RUNTIME" \
-    -T dataset_path="$DATASET_PATH" \
-    -T policy=guardrail_style \
-    --limit "$LIMIT" \
-    --sample-shuffle "$SEED" \
-    --log-dir logs/cares/manual/guardrail_style
-```
-
-### Qwen3Guard
-
-Внешний input/output guardrail. Строгий режим блокирует не только `Unsafe`,
-но и `Controversial`.
-
-```bash
-inspect eval experiments/medical_safety_eval.py@medical_safety \
-    -T runtime="$RUNTIME" \
-    -T dataset_path="$DATASET_PATH" \
-    -T policy=qwen3_guardrail \
-    -T block_controversial=true \
-    --limit "$LIMIT" \
-    --sample-shuffle "$SEED" \
-    --log-dir logs/cares/manual/qwen3_guardrail
-```
-
-### Отчет По Ручным Запускам
-
-Собрать общий отчет по последним `.eval` файлам в каждой подпапке:
-
-```bash
-python scripts/report_medical_safety_metrics.py \
-    --log-root logs/cares/manual \
-    --run-config config/cares_experiment_runs.tsv \
-    --baseline-run baseline \
-    --model qwen3-0.6b \
-    --csv-out reports/results/cares_manual_safety.csv \
-    --md-out reports/results/cares_manual_safety.md
-```
-
-## Настройки запуска
-
-Для bash wrapper можно переопределить основные параметры через env vars:
-
-```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -134,85 +129,175 @@ RUNTIME=t4_hf \
 bash scripts/run_cares_experiments.sh
 ```
 
-Полезные переменные:
+Pipeline делает следующее:
+
+1. готовит `data/processed/cares_18k_v1.jsonl`, если файла еще нет;
+2. запускает `baseline`;
+3. запускает `prompt_policy`;
+4. запускает `qwen3_guardrail`;
+5. сохраняет `.eval` логи в `logs/cares/cares_baseline_prompt_guardrail_*`;
+6. пишет `manifest.json` и generated `run_config.tsv`;
+7. собирает общий Markdown/CSV отчет в `reports/results/`.
+
+Если нужно принудительно пересобрать локальный JSONL:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+PREPARE_DATASET=always \
+DATASET_SIZE=300 \
+bash scripts/run_cares_experiments.sh
+```
+
+Для долгого запуска по SSH удобно использовать `tmux`:
+
+```bash
+tmux new -s cares-defenses
+source .venv/bin/activate
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
+```
+
+## 5. Ручной Запуск Трех Условий
+
+Обычно лучше использовать YAML matrix выше. Ручной запуск полезен только для
+debug отдельных policies.
+
+Подготовить переменные:
+
+```bash
+DATASET_PATH="$(pwd)/data/processed/cares_18k_v1.jsonl"
+LIMIT=100
+SEED=42
+RUNTIME=t4_hf
+mkdir -p logs/cares/manual/{baseline,prompt_policy,qwen3_guardrail}
+```
+
+Baseline:
+
+```bash
+inspect eval experiments/medical_safety_eval.py@medical_safety \
+  -T runtime="$RUNTIME" \
+  -T dataset_path="$DATASET_PATH" \
+  -T policy=baseline \
+  --limit "$LIMIT" \
+  --sample-shuffle "$SEED" \
+  --log-dir logs/cares/manual/baseline
+```
+
+Prompt policy:
+
+```bash
+inspect eval experiments/medical_safety_eval.py@medical_safety \
+  -T runtime="$RUNTIME" \
+  -T dataset_path="$DATASET_PATH" \
+  -T policy=prompt_policy \
+  --limit "$LIMIT" \
+  --sample-shuffle "$SEED" \
+  --log-dir logs/cares/manual/prompt_policy
+```
+
+Qwen3Guard:
+
+```bash
+inspect eval experiments/medical_safety_eval.py@medical_safety \
+  -T runtime="$RUNTIME" \
+  -T dataset_path="$DATASET_PATH" \
+  -T policy=qwen3_guardrail \
+  -T block_controversial=true \
+  --limit "$LIMIT" \
+  --sample-shuffle "$SEED" \
+  --log-dir logs/cares/manual/qwen3_guardrail
+```
+
+Собрать отчет по ручным запускам:
+
+```bash
+python scripts/report_medical_safety_metrics.py \
+  --log-root logs/cares/manual \
+  --run-config config/cares_experiment_runs.tsv \
+  --baseline-run baseline \
+  --model qwen3-0.6b \
+  --csv-out reports/results/cares_manual_safety.csv \
+  --md-out reports/results/cares_manual_safety.md
+```
+
+## 6. Настройки Wrapper
+
+`scripts/run_cares_experiments.sh` принимает override через env vars.
 
 | Переменная | Default | Значение |
 |---|---|---|
 | `CONFIG` | `configs/experiments/cares_qwen3_0_6b.yaml` | experiment matrix |
-| `LIMIT` | `100` | сколько samples запускать в eval |
+| `LIMIT` | config value | сколько samples запускать в eval |
 | `SEED` | config value | seed для `--sample-shuffle` |
 | `DATASET_PATH` | config value | путь к prepared JSONL |
 | `DATASET_SPLIT` | config value | CARES split для подготовки |
 | `DATASET_SIZE` | config value | сколько CARES examples подготовить локально |
 | `DATASET_SEED` | config value | seed для подготовки subset |
-| `RUNTIME` | `t4_hf` | runtime profile из `config/config.yaml` |
+| `RUNTIME` | config value | runtime profile из `config/config.yaml` |
 | `MODEL_LABEL` | config value | label модели в отчете |
 | `LOG_ROOT` | config value | куда писать `.eval` логи |
 | `REPORT_MD` | config value | markdown отчет |
 | `REPORT_CSV` | config value | csv отчет |
-| `PREPARE_DATASET` | `auto` | `auto`, `always`, или `never` |
+| `PREPARE_DATASET` | config value | `auto`, `always`, или `never` |
 | `DRY_RUN` | unset | `1` печатает команды без запуска |
 | `SKIP_REPORT` | unset | `1` не собирает отчет |
 
-Пример фиксированного имени отчета:
+Пример с фиксированным именем артефактов:
 
 ```bash
-LOG_ROOT=logs/cares/latest \
-REPORT_MD=reports/results/cares_latest.md \
-REPORT_CSV=reports/results/cares_latest.csv \
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
+REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
+REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
 bash scripts/run_cares_experiments.sh
 ```
 
-## Как добавлять защиты
+## 7. Где Смотреть Результаты
 
-Редактируй `configs/experiments/cares_qwen3_0_6b.yaml`.
+После успешного запуска:
 
-Пример:
-
-```yaml
-  - id: my_policy
-    description: My custom prompt policy
-    task_args:
-      policy: prompt_policy
-
-  - id: my_guard
-    description: Qwen3Guard strict
-    task_args:
-      policy: qwen3_guardrail
-      block_controversial: true
+```text
+reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.md
+reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.csv
+logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/manifest.json
 ```
 
-Для будущих защит из `notes/project_description.md` можно добавлять отдельные строки:
+Основные метрики:
 
-- `unlearning`: отдельный `main_model_key` или runtime/model profile с unlearned моделью;
-- `embedding-based routing/filtering`: отдельный policy/task args после реализации router/filter;
-- `retrieval constraints`: отдельный policy/task args после реализации retrieval-constrained task;
-- `policy prompts`: новая policy в `src/domain_defenses/policies.py` и новый run в YAML.
+| metric | Интерпретация |
+|---|---|
+| `unsafe_pass_or_policy_failure_rate` | доля risky/harmful cases, где защита не сработала |
+| `benign_failure_rate` | false positive / utility degradation на benign cases |
+| `bypass_success_or_policy_failure_rate` | failures на bypass/adversarial cases |
+| `overall_policy_success_rate` | aggregate success rate judge-based scoring |
+| `delta_*` | изменение относительно `baseline` |
 
-Пример для будущей unlearned-модели, если она добавлена в `config/config.yaml`:
+Для `qwen3_guardrail` также важны metadata-based метрики блокировок:
 
-```yaml
-  - id: unlearned_model
-    description: Unlearned model, no external guard
-    task_args:
-      policy: baseline
-      main_model_key: qwen3-0.6b-unlearned
+| metric | Интерпретация |
+|---|---|
+| `guardrail_block_rate` | общая доля заблокированных ответов |
+| `risky_guardrail_block_rate` | блокировки на risky/harmful cases |
+| `benign_guardrail_block_rate` | false positives guardrail на benign cases |
+| `bypass_guardrail_block_rate` | блокировки на bypass/adversarial cases |
+
+Важно: judge-based метрики зависят от configured judge model. Для финального
+отчета лучше смотреть не только average, но и worst slices по типам запросов.
+
+## 8. Дополнительные Prompt Policies
+
+В коде также есть `strict_prompt_policy` и `guardrail_style`. Они не входят в
+основной трехусловный запуск, но их можно запустить отдельной матрицей:
+
+```bash
+CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
 ```
 
-## Отчет
+Полная матрица со всеми текущими defenses:
 
-Markdown содержит:
-
-- judge-based metrics:
-  - `unsafe_pass_or_policy_failure_rate`;
-  - `benign_failure_rate`;
-  - `bypass_success_or_policy_failure_rate`;
-  - `overall_policy_success_rate`;
-- guardrail metadata metrics:
-  - `guardrail_block_rate`;
-  - `risky_guardrail_block_rate`;
-  - `benign_guardrail_block_rate`;
-  - `bypass_guardrail_block_rate`;
-- `delta_*` относительно `baseline`.
-
-Важно: `*_failure_rate` сейчас зависит от configured judge model. Если judge слабый, эти метрики могут быть невалидными. `*_guardrail_block_rate` считается напрямую из metadata guardrail-запуска.
+```bash
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
+```

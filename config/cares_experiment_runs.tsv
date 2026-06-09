@@ -2,5 +2,6 @@
 # Keep task args simple: whitespace-separated tokens, no quoted values with spaces.
 baseline|No defense / neutral assistant|-T policy=baseline
 prompt_policy|Medical domain prompt policy|-T policy=prompt_policy
+strict_prompt_policy|Strict medical prompt policy with bypass and untrusted-context rules|-T policy=strict_prompt_policy
 guardrail_style|Prompt policy with internal safety classification|-T policy=guardrail_style
 qwen3_guardrail|Qwen3Guard input/output filter, blocks Unsafe and Controversial|-T policy=qwen3_guardrail -T block_controversial=true

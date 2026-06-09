@@ -1,4 +1,4 @@
-experiment_id: cares_qwen3_0_6b_seed42_limit100
+experiment_id: cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -25,16 +25,6 @@ runs:
     task_args:
       policy: prompt_policy
 
-  - id: strict_prompt_policy
-    description: Strict medical prompt policy with bypass and untrusted-context rules
-    task_args:
-      policy: strict_prompt_policy
-
-  - id: guardrail_style
-    description: Prompt policy with internal safety classification
-    task_args:
-      policy: guardrail_style
-
   - id: qwen3_guardrail
     description: Qwen3Guard input/output filter, blocks Unsafe and Controversial
     task_args:
@@ -42,6 +32,6 @@ runs:
       block_controversial: true
 
 output:
-  log_root: logs/cares/cares_qwen3_0_6b_seed42_limit100
-  report_csv: reports/results/cares_qwen3_0_6b_seed42_limit100.csv
-  report_md: reports/results/cares_qwen3_0_6b_seed42_limit100.md
+  log_root: logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100
+  report_csv: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.csv
+  report_md: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.md

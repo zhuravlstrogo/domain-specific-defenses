@@ -1,4 +1,4 @@
-experiment_id: cares_qwen3_0_6b_seed42_limit100
+experiment_id: cares_policy_prompts_qwen3_0_6b_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -35,13 +35,7 @@ runs:
     task_args:
       policy: guardrail_style
 
-  - id: qwen3_guardrail
-    description: Qwen3Guard input/output filter, blocks Unsafe and Controversial
-    task_args:
-      policy: qwen3_guardrail
-      block_controversial: true
-
 output:
-  log_root: logs/cares/cares_qwen3_0_6b_seed42_limit100
-  report_csv: reports/results/cares_qwen3_0_6b_seed42_limit100.csv
-  report_md: reports/results/cares_qwen3_0_6b_seed42_limit100.md
+  log_root: logs/cares/cares_policy_prompts_qwen3_0_6b_seed42_limit100
+  report_csv: reports/results/cares_policy_prompts_qwen3_0_6b_seed42_limit100.csv
+  report_md: reports/results/cares_policy_prompts_qwen3_0_6b_seed42_limit100.md
