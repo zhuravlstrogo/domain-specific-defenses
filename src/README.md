@@ -3,7 +3,7 @@
 Переиспользуемый код проекта.
 
 - `domain_defenses/dataset.py`: загрузка JSONL в `inspect_ai.dataset.Sample`.
-- `domain_defenses/policies.py`: baseline и defense system prompts.
+- `domain_defenses/policies.py`: baseline и defense system prompts, включая `retrieval_constraints`.
 - `domain_defenses/scoring.py`: LLM-as-judge scorer.
 - `domain_defenses/tasks.py`: Inspect AI task.
 - `domain_defenses/analysis.py`: преобразование `EvalLog` в таблицу и базовые метрики.

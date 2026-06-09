@@ -1,8 +1,8 @@
 # domain-specific-defenses
 
 Практический benchmark для сравнения domain-specific defenses в медицинском
-домене: baseline model, prompt-layer policies, external guardrails и будущие
-router / retrieval / unlearning variants.
+домене: baseline model, prompt-layer policies, prompt-level retrieval
+constraints, external guardrails и будущие router / unlearning variants.
 
 ## Структура проекта
 
@@ -12,7 +12,7 @@ config/
 
 configs/
   experiments/
-    cares_baseline_prompt_guardrail_qwen3_0_6b.yaml # baseline vs prompt vs guardrail
+    cares_baseline_prompt_guardrail_qwen3_0_6b.yaml # baseline vs prompt vs retrieval vs guardrail
     cares_qwen3_0_6b.yaml          # reproducible experiment matrix
     cares_policy_prompts_qwen3_0_6b.yaml # prompt-only comparison matrix
 
@@ -61,7 +61,8 @@ CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
-Минимальное сравнение `baseline` / `prompt_policy` / `qwen3_guardrail`:
+Минимальное сравнение `baseline` / `prompt_policy` / `retrieval_constraints` /
+`qwen3_guardrail`:
 
 ```bash
 CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \

@@ -1,8 +1,8 @@
 # CARES-18K Defense Experiments
 
 Этот runbook описывает запуск экспериментов с нуля на удаленном GPU-сервере:
-установка окружения, скачивание CARES-18K, запуск `baseline`, `prompt_policy`
-и `qwen3_guardrail`, затем сбор Markdown/CSV отчета.
+установка окружения, скачивание CARES-18K, запуск `baseline`, `prompt_policy`,
+`retrieval_constraints` и `qwen3_guardrail`, затем сбор Markdown/CSV отчета.
 
 ## Что Запускаем
 
@@ -12,12 +12,13 @@
 configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml
 ```
 
-Она запускает три условия на одном и том же sample set:
+Она запускает четыре условия на одном и том же sample set:
 
 | run_id | policy | Что проверяет |
 |---|---|---|
 | `baseline` | `baseline` | модель без доменной защиты |
 | `prompt_policy` | `prompt_policy` | medical safety policy в system prompt |
+| `retrieval_constraints` | `retrieval_constraints` | prompt-level retrieval grounding и защита от indirect prompt injection |
 | `qwen3_guardrail` | `qwen3_guardrail` | внешний Qwen3Guard input/output filter |
 
 Оценка ответов делается внешним judge через OpenRouter:
@@ -125,15 +126,16 @@ DRY_RUN=1 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Dry run должен напечатать три `inspect eval` команды:
+Dry run должен напечатать четыре `inspect eval` команды:
 
 ```text
-baseline       ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-prompt_policy  ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-qwen3_guardrail ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+baseline              ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+prompt_policy         ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+retrieval_constraints ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+qwen3_guardrail       ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 ```
 
-## 4. Запустить Baseline, Prompt Policy, Guardrail
+## 4. Запустить Baseline, Prompt Policy, Retrieval Constraints, Guardrail
 
 Основной запуск:
 
@@ -151,11 +153,12 @@ Pipeline делает следующее:
 1. готовит `data/processed/cares_18k_v1.jsonl`, если файла еще нет;
 2. запускает `baseline`;
 3. запускает `prompt_policy`;
-4. запускает `qwen3_guardrail`;
-5. оценивает ответы через OpenRouter `qwen/qwen-2.5-72b-instruct` judge;
-6. сохраняет `.eval` логи в `logs/cares/cares_baseline_prompt_guardrail_*`;
-7. пишет `manifest.json` и generated `run_config.tsv`;
-8. собирает общий Markdown/CSV отчет в `reports/results/`.
+4. запускает `retrieval_constraints`;
+5. запускает `qwen3_guardrail`;
+6. оценивает ответы через OpenRouter `qwen/qwen-2.5-72b-instruct` judge;
+7. сохраняет `.eval` логи в `logs/cares/cares_baseline_prompt_retrieval_guardrail_*`;
+8. пишет `manifest.json` и generated `run_config.tsv`;
+9. собирает общий Markdown/CSV отчет в `reports/results/`.
 
 Если нужно принудительно пересобрать локальный JSONL:
 
@@ -175,7 +178,7 @@ CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
-## 5. Ручной Запуск Трех Условий
+## 5. Ручной Запуск Условий
 
 Обычно лучше использовать YAML matrix выше. Ручной запуск полезен только для
 debug отдельных policies.
@@ -188,7 +191,7 @@ LIMIT=100
 SEED=42
 RUNTIME=t4_hf
 GRADE_MODEL=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-mkdir -p logs/cares/manual/{baseline,prompt_policy,qwen3_guardrail}
+mkdir -p logs/cares/manual/{baseline,prompt_policy,retrieval_constraints,qwen3_guardrail}
 ```
 
 Baseline:
@@ -215,6 +218,19 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
   --limit "$LIMIT" \
   --sample-shuffle "$SEED" \
   --log-dir logs/cares/manual/prompt_policy
+```
+
+Retrieval constraints:
+
+```bash
+inspect eval experiments/medical_safety_eval.py@medical_safety \
+  -T runtime="$RUNTIME" \
+  -T dataset_path="$DATASET_PATH" \
+  -T policy=retrieval_constraints \
+  -T grade_model_name="$GRADE_MODEL" \
+  --limit "$LIMIT" \
+  --sample-shuffle "$SEED" \
+  --log-dir logs/cares/manual/retrieval_constraints
 ```
 
 Qwen3Guard:
@@ -301,17 +317,9 @@ bash scripts/run_cares_experiments.sh
 После успешного запуска:
 
 ```text
-reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.md
-reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.csv
-logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/manifest.json
-```
-
-После перехода на `qwen-2.5-72b-instruct` judge текущий основной config пишет сюда:
-
-```text
-reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
-reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
-logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100/manifest.json
+reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
+reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
+logs/cares/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100/manifest.json
 ```
 
 Основные метрики:
@@ -351,8 +359,8 @@ report script агрегирует их детерминированно. Для
 
 ## 8. Дополнительные Prompt Policies
 
-В коде также есть `strict_prompt_policy` и `guardrail_style`. Они не входят в
-основной трехусловный запуск, но их можно запустить отдельной матрицей:
+В коде также есть `strict_prompt_policy`, `guardrail_style` и
+`retrieval_constraints`. Prompt-only варианты можно запустить отдельной матрицей:
 
 ```bash
 CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \

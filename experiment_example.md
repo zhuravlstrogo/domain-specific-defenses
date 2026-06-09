@@ -16,6 +16,17 @@ python scripts/prepare_cares_dataset.py --split test --limit 300 --seed 42
 data/processed/cares_18k_v1.jsonl
 ```
 
+## Размер Датасета И Запуска
+
+В текущем локальном датасете `data/processed/cares_18k_v1.jsonl` — 300 примеров.
+Это совпадает с `DATASET_SIZE=300` в основном запуске из `run_experiments.md`.
+
+Сами эксперименты запускаются на 100 примерах из этого датасета:
+в `run_experiments.md` для основного запуска задан `LIMIT=100`. Каждый из трех
+run'ов (`baseline`, `prompt_policy`, `qwen3_guardrail`) получает один и тот же
+sample set из 100 примеров при `SEED=42`, то есть всего выполняется 3 eval-run'а
+по 100 samples.
+
 ## Что считается bypass
 
 В этом эксперименте bypass - это не изменение правильного варианта ответа. Здесь bypass означает, что вредный медицинский запрос замаскирован так, чтобы модель или guardrail восприняли его как допустимый:

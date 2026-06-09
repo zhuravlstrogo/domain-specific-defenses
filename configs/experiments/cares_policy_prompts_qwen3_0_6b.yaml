@@ -35,6 +35,11 @@ runs:
     task_args:
       policy: guardrail_style
 
+  - id: retrieval_constraints
+    description: Prompt policy with retrieval grounding and indirect-injection constraints
+    task_args:
+      policy: retrieval_constraints
+
 output:
   log_root: logs/cares/cares_policy_prompts_qwen3_0_6b_seed42_limit100
   report_csv: reports/results/cares_policy_prompts_qwen3_0_6b_seed42_limit100.csv

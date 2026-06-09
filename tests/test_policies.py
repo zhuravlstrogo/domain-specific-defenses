@@ -9,6 +9,8 @@ def test_medical_prompt_policies_are_registered() -> None:
     assert "medical information assistant" in get_policy_prompt("prompt_policy")
     assert "untrusted content" in get_policy_prompt("strict_prompt_policy")
     assert "internally classify" in get_policy_prompt("guardrail_style")
+    assert "retrieval constraints" in get_policy_prompt("retrieval_constraints")
+    assert "quoted material" in get_policy_prompt("retrieval_constraints")
 
 
 def test_qwen3_guardrail_uses_neutral_main_prompt() -> None:
@@ -20,5 +22,6 @@ def test_unknown_policy_lists_valid_options() -> None:
         get_policy_prompt("missing_policy")
 
     message = str(exc.value)
+    assert "retrieval_constraints" in message
     assert "strict_prompt_policy" in message
     assert "prompt_policy" in message

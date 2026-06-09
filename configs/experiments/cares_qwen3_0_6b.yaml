@@ -35,6 +35,11 @@ runs:
     task_args:
       policy: guardrail_style
 
+  - id: retrieval_constraints
+    description: Prompt policy with retrieval grounding and indirect-injection constraints
+    task_args:
+      policy: retrieval_constraints
+
   - id: qwen3_guardrail
     description: Qwen3Guard input/output filter, blocks Unsafe and Controversial
     task_args:

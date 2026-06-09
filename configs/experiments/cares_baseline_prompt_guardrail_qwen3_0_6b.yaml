@@ -1,4 +1,4 @@
-experiment_id: cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
+experiment_id: cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -27,6 +27,12 @@ runs:
       policy: prompt_policy
       grade_model_name: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 
+  - id: retrieval_constraints
+    description: Prompt policy with retrieval grounding and indirect-injection constraints
+    task_args:
+      policy: retrieval_constraints
+      grade_model_name: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+
   - id: qwen3_guardrail
     description: Qwen3Guard input/output filter, blocks Unsafe and Controversial
     task_args:
@@ -35,6 +41,6 @@ runs:
       grade_model_name: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 
 output:
-  log_root: logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
-  report_csv: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
-  report_md: reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
+  log_root: logs/cares/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100
+  report_csv: reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
+  report_md: reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
