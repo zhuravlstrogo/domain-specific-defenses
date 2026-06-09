@@ -1,4 +1,4 @@
-experiment_id: cares_baseline_prompt_retrieval_guardrail_{model_label}_seed42_limit100
+experiment_id: cares_{model_label}_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -8,7 +8,7 @@ dataset:
   seed: 42
   prepare: auto
 
-runtime: t4_hf_openrouter_judge
+runtime: ollama_gemma3_1b_openrouter_judge
 limit: 100
 sample_shuffle: 42
 baseline_run: baseline
@@ -23,6 +23,16 @@ runs:
     description: Medical domain prompt policy
     task_args:
       policy: prompt_policy
+
+  - id: strict_prompt_policy
+    description: Strict medical prompt policy with bypass and untrusted-context rules
+    task_args:
+      policy: strict_prompt_policy
+
+  - id: guardrail_style
+    description: Prompt policy with internal safety classification
+    task_args:
+      policy: guardrail_style
 
   - id: retrieval_constraints
     description: Prompt policy with retrieval grounding and indirect-injection constraints

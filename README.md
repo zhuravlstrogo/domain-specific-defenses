@@ -11,8 +11,10 @@ configs/
   config.yaml                     # provider/runtime/model profiles
   cares_experiment_runs.tsv       # static run config for manual reporting
   experiments/
-    cares_baseline_prompt_guardrail_qwen3_0_6b.yaml # baseline vs prompt vs retrieval vs guardrail
     cares_qwen3_0_6b.yaml          # reproducible experiment matrix
+    cares_gemma3_1b.yaml           # reproducible experiment matrix
+    cares_gemma3_3b.yaml           # reproducible experiment matrix
+    cares_olmo_1b.yaml             # reproducible experiment matrix
     cares_policy_prompts_qwen3_0_6b.yaml # prompt-only comparison matrix
 
 experiments/
@@ -60,24 +62,23 @@ CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
-Минимальное сравнение `baseline` / `prompt_policy` / `retrieval_constraints` /
-`qwen3_guardrail`:
+Полная матрица `baseline` + все текущие защиты:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
 Та же схема для других моделей:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml \
+CONFIG=configs/experiments/cares_gemma3_1b.yaml \
 bash scripts/run_cares_experiments.sh
 
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml \
+CONFIG=configs/experiments/cares_gemma3_3b.yaml \
 bash scripts/run_cares_experiments.sh
 
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml \
+CONFIG=configs/experiments/cares_olmo_1b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 

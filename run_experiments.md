@@ -9,30 +9,34 @@
 Основная матрица:
 
 ```text
-configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml
+configs/experiments/cares_qwen3_0_6b.yaml
 ```
 
 Альтернативные model-specific matrix configs:
 
 ```text
-configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml
-configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml
-configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml
+configs/experiments/cares_gemma3_1b.yaml
+configs/experiments/cares_gemma3_3b.yaml
+configs/experiments/cares_olmo_1b.yaml
 ```
 
-Она запускает четыре условия на одном и том же sample set:
+Она запускает все текущие условия на одном и том же sample set:
 
 | run_id | policy | Что проверяет |
 |---|---|---|
 | `baseline` | `baseline` | модель без доменной защиты |
 | `prompt_policy` | `prompt_policy` | medical safety policy в system prompt |
+| `strict_prompt_policy` | `strict_prompt_policy` | усиленная prompt policy против bypass и untrusted context |
+| `guardrail_style` | `guardrail_style` | prompt policy с внутренней safety classification |
 | `retrieval_constraints` | `retrieval_constraints` | prompt-level retrieval grounding и защита от indirect prompt injection |
 | `qwen3_guardrail` | `qwen3_guardrail` | внешний Qwen3Guard input/output filter |
 
-Оценка ответов делается внешним judge через OpenRouter:
+Оценка ответов делается внешним judge через OpenRouter. Для full-matrix
+конфигов judge задается через runtime profile в `configs/config.yaml`:
 
 ```yaml
-grade_model_name: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+grade_provider: openrouter
+grade_model: qwen-2.5-72b-instruct
 ```
 
 Это OpenRouter model id `qwen/qwen-2.5-72b-instruct` в Inspect/OpenAI-compatible
@@ -129,18 +133,20 @@ wc -l data/processed/cares_18k_v1.jsonl
 Перед долгим запуском на сервере сделай dry run:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 DRY_RUN=1 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Dry run должен напечатать четыре `inspect eval` команды:
+Dry run должен напечатать шесть `inspect eval` команд:
 
 ```text
-baseline              ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-prompt_policy         ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-retrieval_constraints ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
-qwen3_guardrail       ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+baseline
+prompt_policy
+strict_prompt_policy
+guardrail_style
+retrieval_constraints
+qwen3_guardrail
 ```
 
 ## 4. Запустить Baseline, Prompt Policy, Retrieval Constraints, Guardrail
@@ -148,7 +154,7 @@ qwen3_guardrail       ... -T grade_model_name=openai-api/openrouter/qwen/qwen-2.
 Основной запуск:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -158,7 +164,7 @@ bash scripts/run_cares_experiments.sh
 Gemma 3 1B:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml \
+CONFIG=configs/experiments/cares_gemma3_1b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -168,7 +174,7 @@ bash scripts/run_cares_experiments.sh
 Gemma 3 3B:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml \
+CONFIG=configs/experiments/cares_gemma3_3b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -178,7 +184,7 @@ bash scripts/run_cares_experiments.sh
 OLMo 1B:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml \
+CONFIG=configs/experiments/cares_olmo_1b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -190,17 +196,19 @@ Pipeline делает следующее:
 1. готовит `data/processed/cares_18k_v1.jsonl`, если файла еще нет;
 2. запускает `baseline`;
 3. запускает `prompt_policy`;
-4. запускает `retrieval_constraints`;
-5. запускает `qwen3_guardrail`;
-6. оценивает ответы через OpenRouter `qwen/qwen-2.5-72b-instruct` judge;
-7. сохраняет `.eval` логи в `logs/cares/cares_baseline_prompt_retrieval_guardrail_*`;
-8. пишет `manifest.json` и generated `run_config.tsv`;
-9. собирает общий Markdown/CSV отчет в `reports/results/`.
+4. запускает `strict_prompt_policy`;
+5. запускает `guardrail_style`;
+6. запускает `retrieval_constraints`;
+7. запускает `qwen3_guardrail`;
+8. оценивает ответы через OpenRouter `qwen/qwen-2.5-72b-instruct` judge;
+9. сохраняет `.eval` логи в `logs/cares/cares_*`;
+10. пишет `manifest.json` и generated `run_config.tsv`;
+11. собирает общий Markdown/CSV отчет в `reports/results/`.
 
 Если нужно принудительно пересобрать локальный JSONL:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 PREPARE_DATASET=always \
 DATASET_SIZE=300 \
 bash scripts/run_cares_experiments.sh
@@ -211,7 +219,7 @@ bash scripts/run_cares_experiments.sh
 ```bash
 tmux new -s cares-defenses
 source .venv/bin/activate
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -230,6 +238,8 @@ RUNTIME=t4_hf
 GRADE_MODEL=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 mkdir -p logs/cares/manual/{baseline,prompt_policy,retrieval_constraints,qwen3_guardrail}
 ```
+
+`GRADE_MODEL` здесь нужен только для ручного debug-запуска вне matrix YAML.
 
 Baseline:
 
@@ -328,7 +338,7 @@ OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
 Пример с фиксированным именем артефактов:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
 REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
 REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
@@ -339,11 +349,10 @@ bash scripts/run_cares_experiments.sh
 увеличь jitter:
 
 ```bash
-CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
-RUNTIME=t4_hf \
 JUDGE_REQUEST_SLEEP_MIN=2 \
 JUDGE_REQUEST_SLEEP_MAX=6 \
 bash scripts/run_cares_experiments.sh
@@ -354,9 +363,9 @@ bash scripts/run_cares_experiments.sh
 После успешного запуска:
 
 ```text
-reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.md
-reports/results/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100.csv
-logs/cares/cares_baseline_prompt_retrieval_guardrail_qwen3_0_6b_qwen_2_5_72b_judge_seed42_limit100/manifest.json
+reports/results/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100.md
+reports/results/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100.csv
+logs/cares/cares_qwen3_0_6b_guard_qwen3_guard_0_6b_seed42_limit100/manifest.json
 ```
 
 Основные метрики:
