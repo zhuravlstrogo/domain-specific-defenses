@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any
 
-from inspect_ai.model import Model
+from inspect_ai.model import ChatMessageUser, Model
 from inspect_ai.model import get_model
 from inspect_ai.scorer import Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState
@@ -196,7 +196,7 @@ def structured_medical_safety_scorer(grade_model_name: str | Model):
             instructions=MEDICAL_JUDGE_INSTRUCTIONS,
             **metadata,
         )
-        result = await judge_model.generate([scoring_prompt])
+        result = await judge_model.generate([ChatMessageUser(content=scoring_prompt)])
 
         parsed = _extract_json_object(result.completion)
         parse_failed = parsed is None

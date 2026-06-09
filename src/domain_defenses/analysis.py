@@ -8,6 +8,8 @@ import pandas as pd
 
 def _first_score(sample: Any) -> Any:
     scores = sample.scores
+    if not scores:
+        return None
     first_key = list(scores.keys())[0]
     value = scores[first_key]
     return value[0] if isinstance(value, list) else value

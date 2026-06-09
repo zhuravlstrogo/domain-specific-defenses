@@ -230,6 +230,14 @@ def _write_report(
     )
 
 
+def _require_scored_samples(df: pd.DataFrame, log_path: Path) -> None:
+    if "score" not in df.columns or not bool(df["score"].notna().any()):
+        raise ValueError(
+            f"No scored samples found in {log_path}. "
+            "The eval log is likely interrupted or incomplete; rerun the eval first."
+        )
+
+
 def _run_pair_mode(args: argparse.Namespace) -> tuple[Path, Path]:
     baseline_path = _resolve_log(args.baseline_log, args.baseline_log_dir)
     defense_path = _resolve_log(args.defense_log, args.defense_log_dir)
@@ -238,6 +246,8 @@ def _run_pair_mode(args: argparse.Namespace) -> tuple[Path, Path]:
     defense_log = read_eval_log(str(defense_path))
     baseline_df = log_to_df(baseline_log)
     defense_df = log_to_df(defense_log)
+    _require_scored_samples(baseline_df, baseline_path)
+    _require_scored_samples(defense_df, defense_path)
 
     baseline_metrics = {
         **summarize_medical_eval(baseline_df),
@@ -287,6 +297,7 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
         log_paths.append(log_path)
         log = read_eval_log(str(log_path))
         df = log_to_df(log)
+        _require_scored_samples(df, log_path)
         metrics = {
             **summarize_medical_eval(df),
             **_summarize_guardrail(log),
