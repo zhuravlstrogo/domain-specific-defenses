@@ -1,5 +1,6 @@
 inspect-ai
 openai
+PyYAML
 torch
 transformers>=4.51,<4.57
 accelerate
