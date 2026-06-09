@@ -108,7 +108,7 @@ def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch)
                 "default": "local",
                 "local": {
                     "models": {
-                        "qwen3-0.6b": "hf/Qwen/Qwen3-0.6B",
+                        "qwen3-1.7b": "hf/Qwen/Qwen3-1.7B",
                         "qwen3-guard-0.6b": "hf/Qwen/Qwen3Guard-Gen-0.6B",
                         "qwen-2.5-72b-instruct": "openai-api/openrouter/qwen/qwen-2.5-72b-instruct",
                     }
@@ -118,7 +118,7 @@ def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch)
                 "default": "named",
                 "named": {
                     "provider": "local",
-                    "main_model": "qwen3-0.6b",
+                    "main_model": "qwen3-1.7b",
                     "guard_model": "qwen3-guard-0.6b",
                     "grade_model": "qwen-2.5-72b-instruct",
                 },
@@ -127,5 +127,5 @@ def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch)
     )
 
     assert runtime_config.get_runtime_experiment_label("named") == (
-        "qwen3_0_6b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct"
+        "qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct"
     )

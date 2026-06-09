@@ -7,10 +7,8 @@ Provider configs live in `configs/config.yaml`. Model strings and defaults are l
 ### Ollama (default, local)
 
 ```bash
-ollama pull qwen3:0.6b
-ollama pull gemma3:1b
-ollama pull gemma3:3b
-ollama pull olmo2:7b
+ollama pull qwen3:1.7b
+ollama pull gemma2:2b
 # ollama serve  # starts automatically on macOS
 ```
 
@@ -48,7 +46,7 @@ Outputs:
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model ollama/qwen3:0.6b \
+  --model ollama/qwen3:1.7b \
   --limit 5 \
   -T policy=baseline \
   -T phase=both \
@@ -64,7 +62,7 @@ Baseline:
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model ollama/qwen3:0.6b \
+  --model ollama/qwen3:1.7b \
   --limit 100 \
   -T policy=baseline \
   -T phase=both \
@@ -76,7 +74,7 @@ Defense (`mcq_prompt_policy`):
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model ollama/qwen3:0.6b \
+  --model ollama/qwen3:1.7b \
   --limit 100 \
   -T policy=mcq_prompt_policy \
   -T phase=both \
@@ -86,8 +84,8 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
 
 Other models (ollama):
 - `ollama/qwen3:1.7b`
-- `ollama/gemma3:1b`
-- `ollama/olmo2:7b`
+- `ollama/gemma2:2b`
+- `hf/allenai/OLMo-2-0425-1B-Instruct`
 
 ### OpenRouter
 
@@ -95,7 +93,7 @@ Other models (ollama):
 # set OPENAI_BASE_URL and OPENAI_API_KEY first (see section 0)
 
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
-  --model "openai/qwen/qwen3-0.6b-04-28:free" \
+  --model "openai-api/openrouter/qwen/qwen3-1.7b" \
   --limit 100 \
   -T policy=baseline \
   -T phase=both \
@@ -107,7 +105,7 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
 
 ```bash
 inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_multiturn \
-  --model ollama/qwen3:0.6b \
+  --model ollama/qwen3:1.7b \
   --limit 100 \
   -T policy=mcq_prompt_policy \
   -T thinking=no_think \

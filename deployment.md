@@ -11,7 +11,7 @@
 - RAM: 16 GB
 - Disk: 60 GB
 
-Этого достаточно для `Qwen/Qwen3-0.6B` как основной модели и `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. Для `qwen3-1.7b` тоже должно хватить, но при OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
+Этого достаточно для `Qwen/Qwen3-1.7B`, `google/gemma-2-2b-it` и `allenai/OLMo-2-0425-1B-Instruct` как основных моделей, а также для `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. При OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
 
 Запрашивайте больше ресурсов, если переходите на 7B+ модели или хотите держать несколько vLLM-серверов одновременно:
 
@@ -99,10 +99,11 @@ python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 
 
 ## Установка Ollama
 
-Ollama нужен для capacity-matched `~7B` runtime-профилей, где
-`provider: ollama`, например `cares_qwen2_5_7b.yaml`, `cares_gemma_7b.yaml` и
-`cares_olmo_7b.yaml`. Для small-model `cares_qwen3_0_6b.yaml` основной
-инференс идет через Hugging Face, и Ollama не требуется.
+Ollama больше не нужен для основных CARES matrix-конфигов: текущие
+`cares_qwen3_1_7b.yaml`, `cares_gemma_2_2b_it.yaml` и
+`cares_olmo_2_0425_1b_instruct.yaml` идут через `provider: t4_hf`. Ollama
+остаётся опциональным только для локальных smoke-тестов и ручных запусков вне
+основной матрицы.
 
 Установить Ollama на Linux VM:
 
@@ -123,20 +124,18 @@ ollama --version
 ollama serve
 ```
 
-В другом терминале скачайте модель, которую задает experiment config:
+В другом терминале при необходимости скачайте локальную модель для smoke-теста:
 
 ```bash
-ollama pull qwen2.5:7b
-ollama pull gemma:7b
-ollama pull olmo2:7b
+ollama pull qwen3:1.7b
+ollama pull gemma2:2b
 ```
 
 Проверить, что модель отвечает:
 
 ```bash
-ollama run qwen2.5:7b "hello"
-ollama run gemma:7b "hello"
-ollama run olmo2:7b "hello"
+ollama run qwen3:1.7b "hello"
+ollama run gemma2:2b "hello"
 ollama ps
 ollama list
 ```
@@ -341,7 +340,7 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 1. Уменьшите `--max-samples`.
 2. Уменьшите `batch_size` и `max_connections` до `1-2`.
 3. Оставьте `thinking=no_think`.
-4. Используйте `main_model_key=qwen3-0.6b`.
+4. Используйте `main_model_key=olmo2-0425-1b-instruct` или `main_model_key=qwen3-1.7b` для ручного override.
 
 После каждого изменения смотрите фактическую память:
 

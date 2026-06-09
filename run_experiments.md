@@ -9,24 +9,21 @@
 Основная матрица:
 
 ```text
-configs/experiments/cares_qwen2_5_7b.yaml
+configs/experiments/cares_qwen3_1_7b.yaml
 ```
 
-Capacity-matched `~7B` model-specific matrix configs:
+Текущий набор основных model-specific matrix configs:
 
 ```text
-configs/experiments/cares_qwen2_5_7b.yaml
-configs/experiments/cares_gemma_7b.yaml
-configs/experiments/cares_olmo_7b.yaml
+configs/experiments/cares_qwen3_1_7b.yaml
+configs/experiments/cares_gemma_2_2b_it.yaml
+configs/experiments/cares_olmo_2_0425_1b_instruct.yaml
 ```
 
-Для корректного сравнения между моделями лучше держать размер основной модели
-примерно одинаковым. Для Qwen используется точная `qwen2.5:7b`; у `Gemma 3` нет
-7B-варианта, поэтому для capacity-matched сравнения используется предыдущая
-`Gemma` `gemma:7b`. Small-model конфиги
-`cares_qwen3_0_6b.yaml`, `cares_gemma3_1b.yaml` и `cares_gemma3_3b.yaml`
-оставлены для отдельных sanity/small-model прогонов, но их не стоит смешивать с
-`~7B` результатами без явного caveat.
+Это соответствует текущему дизайну эксперимента: `Qwen3-1.7B`,
+`Gemma-2-2B-IT` и `OLMo-2-0425-1B-Instruct` как основной small-model trio для
+before/after сравнения защит. Prompt-only конфиг для Qwen вынесен отдельно в
+`cares_policy_prompts_qwen3_1_7b.yaml`.
 
 Она запускает все текущие условия на одном и том же sample set:
 
@@ -93,45 +90,23 @@ export HF_DATASETS_CACHE=/data/hf-cache/datasets
 huggingface-cli login
 ```
 
-## 1.4. Проверить Ollama Для Qwen/Gemma/OLMo
+## 1.4. Проверить Local Runtime
 
-Конфиги `cares_qwen2_5_7b.yaml`, `cares_gemma_7b.yaml` и `cares_olmo_7b.yaml`
-используют Ollama для основной модели. Перед запуском такого конфига сервис
-должен быть поднят, а модель должна быть скачана. Small-model Ollama-конфиги
-`cares_gemma3_1b.yaml` и `cares_gemma3_3b.yaml` требуют тех же действий.
+Текущие experiment-конфиги используют Hugging Face runtime `t4_hf` для основной
+модели и guard-модели, поэтому отдельный `ollama serve` для CARES matrix больше
+не нужен. Достаточно, чтобы GPU-сервер мог скачать веса через Hugging Face и,
+для Gemma, чтобы были приняты license terms.
 
-Проверить Ollama:
-
-```bash
-which ollama
-ollama --version
-ollama ps
-ollama list
-```
-
-Если `ollama` не установлен, установи его по инструкции из `deployment.md`.
-
-Поднять сервис в отдельном `tmux` pane/session:
+Проверить, что CUDA и Hugging Face runtime доступны:
 
 ```bash
-ollama serve
+python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('Qwen/Qwen3-1.7B', trust_remote_code=True); print('hf ok')"
 ```
 
-Скачать нужные модели:
-
-```bash
-ollama pull qwen2.5:7b
-ollama pull gemma:7b
-ollama pull olmo2:7b
-```
-
-Быстрая проверка перед experiment run:
-
-```bash
-ollama run qwen2.5:7b "hello"
-ollama run gemma:7b "hello"
-ollama run olmo2:7b "hello"
-```
+Если нужен только быстрый локальный smoke test вне matrix, Ollama остаётся
+опциональным для `qwen3:1.7b` и `gemma2:2b`, но это уже не основной runtime
+проекта.
 
 ## 1.5. Проверить OpenRouter Judge
 
@@ -181,7 +156,7 @@ wc -l data/processed/cares_18k_v1.jsonl
 Перед долгим запуском на сервере сделай dry run:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 DRY_RUN=1 \
 bash scripts/run_cares_experiments.sh
 ```
@@ -202,57 +177,32 @@ qwen3_guardrail
 Основной запуск:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Gemma 7B:
+Gemma 2 2B IT:
 
 ```bash
-CONFIG=configs/experiments/cares_gemma_7b.yaml \
+CONFIG=configs/experiments/cares_gemma_2_2b_it.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-OLMo 7B:
+OLMo 2 0425 1B Instruct:
 
 ```bash
-CONFIG=configs/experiments/cares_olmo_7b.yaml \
+CONFIG=configs/experiments/cares_olmo_2_0425_1b_instruct.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
-
-Small-model sanity runs, если нужны отдельно:
-
-```bash
-CONFIG=configs/experiments/cares_qwen3_0_6b.yaml \
-LIMIT=100 \
-DATASET_SIZE=300 \
-SEED=42 \
-bash scripts/run_cares_experiments.sh
-
-CONFIG=configs/experiments/cares_gemma3_1b.yaml \
-LIMIT=100 \
-DATASET_SIZE=300 \
-SEED=42 \
-bash scripts/run_cares_experiments.sh
-
-CONFIG=configs/experiments/cares_gemma3_3b.yaml \
-LIMIT=100 \
-DATASET_SIZE=300 \
-SEED=42 \
-bash scripts/run_cares_experiments.sh
-```
-
-Для Qwen/Gemma/OLMo через Ollama сначала должен работать `ollama serve`; иначе `inspect eval`
-будет ждать или упадет при первом обращении к main model.
 
 Pipeline делает следующее:
 
@@ -271,7 +221,7 @@ Pipeline делает следующее:
 Если нужно принудительно пересобрать локальный JSONL:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 PREPARE_DATASET=always \
 DATASET_SIZE=300 \
 bash scripts/run_cares_experiments.sh
@@ -282,7 +232,7 @@ bash scripts/run_cares_experiments.sh
 ```bash
 tmux new -s cares-defenses
 source .venv/bin/activate
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -364,7 +314,7 @@ python scripts/report_medical_safety_metrics.py \
   --log-root logs/cares/manual \
   --run-config configs/cares_experiment_runs.tsv \
   --baseline-run baseline \
-  --model qwen3-0.6b_qwen-2.5-72b-judge \
+  --model qwen3-1.7b_qwen-2.5-72b-judge \
   --csv-out reports/results/cares_manual_safety.csv \
   --md-out reports/results/cares_manual_safety.md
 ```
@@ -375,7 +325,7 @@ python scripts/report_medical_safety_metrics.py \
 
 | Переменная | Default | Значение |
 |---|---|---|
-| `CONFIG` | `configs/experiments/cares_qwen2_5_7b.yaml` | experiment matrix |
+| `CONFIG` | `configs/experiments/cares_qwen3_1_7b.yaml` | experiment matrix |
 | `LIMIT` | config value | сколько samples запускать в eval |
 | `SEED` | config value | seed для `--sample-shuffle` |
 | `DATASET_PATH` | config value | путь к prepared JSONL |
@@ -401,7 +351,7 @@ OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
 Пример с фиксированным именем артефактов:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
 REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
 REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
@@ -412,7 +362,7 @@ bash scripts/run_cares_experiments.sh
 увеличь jitter:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -426,9 +376,9 @@ bash scripts/run_cares_experiments.sh
 После успешного запуска:
 
 ```text
-reports/results/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md
-reports/results/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv
-logs/cares/cares_qwen2_5_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/manifest.json
+reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md
+reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv
+logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/manifest.json
 ```
 
 Основные метрики:
@@ -472,13 +422,13 @@ report script агрегирует их детерминированно. Для
 `retrieval_constraints`. Prompt-only варианты можно запустить отдельной матрицей:
 
 ```bash
-CONFIG=configs/experiments/cares_policy_prompts_qwen3_0_6b.yaml \
+CONFIG=configs/experiments/cares_policy_prompts_qwen3_1_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
 Полная матрица со всеми текущими defenses:
 
 ```bash
-CONFIG=configs/experiments/cares_qwen2_5_7b.yaml \
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```

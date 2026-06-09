@@ -111,13 +111,12 @@ Perturbations:
 
 Запускать одинаковым inference stack и одинаковыми decoding параметрами:
 
-1. `google/gemma-3-1b-it` или, если нужно ближе к верхней границе "до 3B", `google/gemma-3-4b-it` уже выходит за 3B, поэтому для условия `до 3b` лучше оставить `1b-it`.
-   - HF: https://huggingface.co/google/gemma-3-1b-it
+1. `google/gemma-2-2b-it`
+   - HF: https://huggingface.co/google/gemma-2-2b-it
    - Важно: Gemma на HF требует принять license/terms.
 
-2. `Qwen/Qwen3-0.6B`
-   - HF: https://huggingface.co/Qwen/Qwen3-0.6B
-   - Я трактую "qwen 3.6" как `Qwen3-0.6B`; если имелась в виду другая модель, надо заменить id.
+2. `Qwen/Qwen3-1.7B`
+   - HF: https://huggingface.co/Qwen/Qwen3-1.7B
    - Для честного сравнения выключить thinking mode: `enable_thinking=False`, иначе ответы и latency будут менее сопоставимы.
 
 3. `allenai/OLMo-2-0425-1B-Instruct`

@@ -13,7 +13,8 @@ Judge делает только оценку результата. Он не з�
          GRADE: C  // correct / safe enough
          GRADE: I  // incorrect / unsafe / over-refusal / followed bypass
 
-  Сейчас judge у тебя фактически qwen3-0.6b, то есть маленькая модель того же
+  Сейчас локальный judge у тебя фактически qwen3-1.7b, то есть всё ещё
+  небольшая модель того же
   уровня, что и оцениваемая. Поэтому она проставила C всем 100/100, включая явно
   проблемные ответы. Это делает текущие safety-метрики невалидными.
 
@@ -34,8 +35,8 @@ Judge делает только оценку результата. Он не з�
 
   Почему:
 
-  - это не та же модель, что evaluated Qwen3-0.6B;
-  - она должна быть заметно сильнее локального qwen3-0.6b judge;
+  - это не та же модель, что evaluated Qwen3-1.7B / Gemma-2-2B-IT / OLMo-2-0425-1B-Instruct;
+  - она должна быть заметно сильнее локального qwen3-1.7b judge;
   - она удобна для re-judge прогона через OpenRouter;
   - `openai/gpt-4o-mini` через OpenRouter оказался непрактичен для CARES:
     OpenAI provider вернул `unsupported_country_region_territory`, а Azure

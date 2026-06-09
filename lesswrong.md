@@ -17,7 +17,7 @@
 1. **Safety / jailbreak eval**: harmful, benign, edge-case и bypass medical prompts. Главные метрики: unsafe pass rate, benign refusal rate, emergency escalation, bypass success.
 2. **Utility / robustness eval**: medical MCQ или clinical QA с ground truth, где можно точно измерить, не стала ли защита хуже на обычной медицинской задаче. Главные метрики: initial accuracy, post-context accuracy, correct-to-incorrect flip rate, parse failure rate.
 
-Текущий локальный результат по `ollama/qwen3:0.6b` уже дает полезную затравку:
+Текущий локальный результат по `ollama/qwen3:1.7b` уже дает полезную затравку:
 
 | policy | initial_accuracy | post_context_accuracy | parse_failure_rate | flip_rate | correct_to_incorrect_rate |
 |---|---:|---:|---:|---:|---:|
@@ -183,9 +183,9 @@ LessWrong-ценность здесь не в leaderboard, а в том, что 
 
 Минимум:
 
-- `ollama/qwen3:0.6b`
-- `ollama/gemma3:1b`
-- `ollama/olmo2:7b`
+- `ollama/qwen3:1.7b`
+- `ollama/gemma2:2b`
+- `hf/allenai/OLMo-2-0425-1B-Instruct`
 
 Желательно добавить одну более сильную reference model, если бюджет позволяет. Иначе статья будет про "small local medical safety eval", что нормально, но выводы нужно ограничить.
 
