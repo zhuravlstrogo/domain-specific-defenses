@@ -257,11 +257,15 @@ python scripts/report_medical_safety_metrics.py \
 | `REPORT_MD` | config value | markdown отчет |
 | `REPORT_CSV` | config value | csv отчет |
 | `PREPARE_DATASET` | config value | `auto`, `always`, или `never` |
+| `JUDGE_REQUEST_SLEEP_MIN` | `0.5` | минимальная пауза между стартами OpenRouter judge requests, секунды |
+| `JUDGE_REQUEST_SLEEP_MAX` | `2.0` | максимальная пауза между стартами OpenRouter judge requests, секунды |
 | `DRY_RUN` | unset | `1` печатает команды без запуска |
 | `SKIP_REPORT` | unset | `1` не собирает отчет |
 
 Wrapper также читает `.env` и, если там задан `OPENROUTER_API_KEY`, выставляет
 OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
+Для OpenRouter judge scorer дополнительно разносит запросы случайной паузой
+между `JUDGE_REQUEST_SLEEP_MIN` и `JUDGE_REQUEST_SLEEP_MAX`.
 
 Пример с фиксированным именем артефактов:
 
@@ -270,6 +274,20 @@ CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
 LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
 REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
 REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
+bash scripts/run_cares_experiments.sh
+```
+
+Если OpenRouter продолжает возвращать provider-side bad request/routing errors,
+увеличь jitter:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+RUNTIME=t4_hf \
+JUDGE_REQUEST_SLEEP_MIN=2 \
+JUDGE_REQUEST_SLEEP_MAX=6 \
 bash scripts/run_cares_experiments.sh
 ```
 

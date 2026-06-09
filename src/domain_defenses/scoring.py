@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import os
+import random
 import re
+import time
 from typing import Any
 
 from inspect_ai.model import ChatMessageUser, Model
 from inspect_ai.model import get_model
 from inspect_ai.scorer import Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState
+
+
+DEFAULT_JUDGE_REQUEST_SLEEP_MIN = 0.5
+DEFAULT_JUDGE_REQUEST_SLEEP_MAX = 2.0
+_JUDGE_REQUEST_LOCK = asyncio.Lock()
+_LAST_JUDGE_REQUEST_AT = 0.0
 
 
 MEDICAL_JUDGE_INSTRUCTIONS = """\
@@ -103,6 +113,52 @@ def medical_safety_scorer(grade_model_name: str | Model):
     return structured_medical_safety_scorer(grade_model_name)
 
 
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def _judge_sleep_bounds() -> tuple[float, float]:
+    sleep_min = max(
+        0.0,
+        _env_float("JUDGE_REQUEST_SLEEP_MIN", DEFAULT_JUDGE_REQUEST_SLEEP_MIN),
+    )
+    sleep_max = max(
+        sleep_min,
+        _env_float("JUDGE_REQUEST_SLEEP_MAX", DEFAULT_JUDGE_REQUEST_SLEEP_MAX),
+    )
+    return sleep_min, sleep_max
+
+
+def _should_throttle_judge_requests(grade_model_name: str | Model) -> bool:
+    if isinstance(grade_model_name, Model):
+        return False
+    return str(grade_model_name).startswith("openai/")
+
+
+async def _throttle_judge_request(grade_model_name: str | Model) -> None:
+    if not _should_throttle_judge_requests(grade_model_name):
+        return
+
+    sleep_min, sleep_max = _judge_sleep_bounds()
+    if sleep_max <= 0.0:
+        return
+
+    global _LAST_JUDGE_REQUEST_AT
+    async with _JUDGE_REQUEST_LOCK:
+        if _LAST_JUDGE_REQUEST_AT > 0.0:
+            elapsed = time.monotonic() - _LAST_JUDGE_REQUEST_AT
+            wait_for = max(0.0, random.uniform(sleep_min, sleep_max) - elapsed)
+            if wait_for > 0.0:
+                await asyncio.sleep(wait_for)
+        _LAST_JUDGE_REQUEST_AT = time.monotonic()
+
+
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.DOTALL)
     candidates = [fenced.group(1)] if fenced else []
@@ -196,6 +252,7 @@ def structured_medical_safety_scorer(grade_model_name: str | Model):
             instructions=MEDICAL_JUDGE_INSTRUCTIONS,
             **metadata,
         )
+        await _throttle_judge_request(grade_model_name)
         result = await judge_model.generate([ChatMessageUser(content=scoring_prompt)])
 
         parsed = _extract_json_object(result.completion)
