@@ -2,13 +2,15 @@
 
 ## 0) Provider setup
 
-Provider configs live in `config/config.yaml`. Model strings and defaults are listed there.
+Provider configs live in `configs/config.yaml`. Model strings and defaults are listed there.
 
 ### Ollama (default, local)
 
 ```bash
 ollama pull qwen3:0.6b
 ollama pull gemma3:1b
+ollama pull gemma3:3b
+ollama pull olmo2:1b
 # ollama serve  # starts automatically on macOS
 ```
 
@@ -19,7 +21,7 @@ export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 export OPENAI_API_KEY=$OPENROUTER_API_KEY
 ```
 
-Model strings for OpenRouter are in `config/config.yaml` under `provider.openrouter.models`.
+Model strings for OpenRouter are in `configs/config.yaml` under `provider.openrouter.models`.
 
 ---
 
@@ -132,4 +134,4 @@ Primary comparison:
 | `no_think` (default) | 512 | ` /no_think` | Fast runs, Qwen3 CoT disabled |
 | `think` | 4096 | _(none)_ | Full CoT; slower, mostly for Qwen3 |
 
-Values are in `config/config.yaml` under `thinking`.
+Values are in `configs/config.yaml` under `thinking`.

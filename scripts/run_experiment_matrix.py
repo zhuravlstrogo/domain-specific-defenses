@@ -14,6 +14,12 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC = REPO_ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from domain_defenses.config import get_runtime_model_label
+from domain_defenses.guardrails import is_guardrail_policy
 
 
 def parse_args() -> argparse.Namespace:
@@ -104,6 +110,52 @@ def _task_arg_tokens(task_args: dict[str, Any]) -> list[str]:
 
 def _command_text(command: list[str]) -> str:
     return " ".join(command)
+
+
+def _format_template(value: str, **context: str) -> str:
+    try:
+        return value.format(**context)
+    except KeyError as exc:
+        valid = ", ".join(sorted(context))
+        raise ValueError(
+            f"Unknown template variable '{exc.args[0]}' in {value!r}. Valid: {valid}"
+        ) from exc
+
+
+def _run_uses_guard_model(run: dict[str, Any]) -> bool:
+    task_args = dict(run.get("task_args", {}))
+    return bool(
+        task_args.get("guard_model_key")
+        or task_args.get("guard_model_name")
+        or is_guardrail_policy(str(task_args.get("policy", "")))
+    )
+
+
+def _task_uses_grade_model(task: str, runs: list[dict[str, Any]]) -> bool:
+    if task.endswith("@medical_safety"):
+        return True
+    return any(
+        dict(run.get("task_args", {})).get("grade_model_key")
+        or dict(run.get("task_args", {})).get("grade_model_name")
+        for run in runs
+    )
+
+
+def _default_model_label(task: str, runtime: str, runs: list[dict[str, Any]]) -> str:
+    main = get_runtime_model_label("main", runtime=runtime)
+    parts = [main]
+
+    if any(_run_uses_guard_model(run) for run in runs):
+        guard = get_runtime_model_label("guard", runtime=runtime)
+        if guard != main:
+            parts.append(f"guard_{guard}")
+
+    if _task_uses_grade_model(task, runs):
+        grade = get_runtime_model_label("grade", runtime=runtime)
+        if grade != main:
+            parts.append(f"judge_{grade}")
+
+    return "_".join(parts)
 
 
 def _run(command: list[str], *, dry_run: bool) -> None:
@@ -221,25 +273,49 @@ def main() -> int:
         raise ValueError("Config must define at least one run.")
 
     runtime = args.runtime or str(cfg.get("runtime", "t4_hf"))
+    model_label = (
+        args.model_label
+        or cfg.get("model_label")
+        or _default_model_label(task, runtime, runs)
+    )
+    raw_experiment_id = str(cfg["experiment_id"])
+    experiment_id = _format_template(
+        raw_experiment_id,
+        model_label=str(model_label),
+        runtime=runtime,
+    )
     limit = args.limit if args.limit is not None else int(cfg.get("limit", 100))
     sample_shuffle = (
         args.sample_shuffle
         if args.sample_shuffle is not None
         else int(cfg.get("sample_shuffle", dataset_cfg.get("seed", 42)))
     )
-    model_label = args.model_label or str(cfg.get("model_label", runtime))
     baseline_run = str(cfg.get("baseline_run", "baseline"))
 
     dataset_path = _repo_path(dataset_cfg.get("path", "data/processed/cares_18k_v1.jsonl"))
     log_root = _repo_path(
-        args.log_root or output_cfg.get("log_root", f"logs/experiments/{experiment_id}")
+        _format_template(
+            args.log_root or output_cfg.get("log_root", "logs/experiments/{experiment_id}"),
+            experiment_id=experiment_id,
+            model_label=str(model_label),
+            runtime=runtime,
+        )
     )
     report_csv = _repo_path(
-        args.report_csv
-        or output_cfg.get("report_csv", f"reports/results/{experiment_id}.csv")
+        _format_template(
+            args.report_csv or output_cfg.get("report_csv", "reports/results/{experiment_id}.csv"),
+            experiment_id=experiment_id,
+            model_label=str(model_label),
+            runtime=runtime,
+        )
     )
     report_md = _repo_path(
-        args.report_md or output_cfg.get("report_md", f"reports/results/{experiment_id}.md")
+        _format_template(
+            args.report_md or output_cfg.get("report_md", "reports/results/{experiment_id}.md"),
+            experiment_id=experiment_id,
+            model_label=str(model_label),
+            runtime=runtime,
+        )
     )
 
     if not args.dry_run:

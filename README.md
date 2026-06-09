@@ -7,10 +7,9 @@ constraints, external guardrails и будущие router / unlearning variants.
 ## Структура проекта
 
 ```text
-config/
-  config.yaml                     # provider/runtime/model profiles
-
 configs/
+  config.yaml                     # provider/runtime/model profiles
+  cares_experiment_runs.tsv       # static run config for manual reporting
   experiments/
     cares_baseline_prompt_guardrail_qwen3_0_6b.yaml # baseline vs prompt vs retrieval vs guardrail
     cares_qwen3_0_6b.yaml          # reproducible experiment matrix
@@ -66,6 +65,19 @@ bash scripts/run_cares_experiments.sh
 
 ```bash
 CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
+bash scripts/run_cares_experiments.sh
+```
+
+Та же схема для других моделей:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml \
+bash scripts/run_cares_experiments.sh
+
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml \
+bash scripts/run_cares_experiments.sh
+
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 

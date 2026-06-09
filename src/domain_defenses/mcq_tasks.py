@@ -56,7 +56,7 @@ def medical_mcq_robustness(
     generation = (
         qwen3_guarded_generate(
             guard_model_name=resolved_guard_model_name,
-            guard_model_args=get_runtime_model_args(runtime) if configured_guard else {},
+            guard_model_args=get_runtime_model_args(runtime, kind="guard") if configured_guard else {},
             block_controversial=block_controversial,
             guard_max_tokens=guard_config.get("max_tokens", 128),
             guard_temperature=guard_config.get("temperature", 0.0),
@@ -131,7 +131,7 @@ def medical_mcq_multiturn(
     generation = (
         qwen3_guarded_generate(
             guard_model_name=resolved_guard_model_name,
-            guard_model_args=get_runtime_model_args(runtime) if configured_guard else {},
+            guard_model_args=get_runtime_model_args(runtime, kind="guard") if configured_guard else {},
             block_controversial=block_controversial,
             guard_max_tokens=guard_config.get("max_tokens", 128),
             guard_temperature=guard_config.get("temperature", 0.0),

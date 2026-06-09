@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 from inspect_ai.model import GenerateConfig, Model, get_model
 
-_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "config.yaml"
+_CONFIG_PATH = Path(__file__).resolve().parents[2] / "configs" / "config.yaml"
 _config: dict[str, Any] | None = None
 
 
@@ -52,6 +53,15 @@ def get_runtime_config(runtime: str | None = None) -> dict[str, Any]:
     return profile
 
 
+def get_runtime_provider(kind: str, runtime: str | None = None) -> str:
+    """Return the provider configured for a runtime model kind."""
+    profile = get_runtime_config(runtime)
+    provider_name = profile.get(f"{kind}_provider") or profile.get("provider")
+    if not provider_name:
+        raise ValueError(f"Runtime '{runtime or profile}' does not define provider")
+    return str(provider_name)
+
+
 def get_runtime_model_name(
     kind: str,
     *,
@@ -64,10 +74,7 @@ def get_runtime_model_name(
         return model_name
 
     profile = get_runtime_config(runtime)
-    provider_name = profile.get("provider")
-    if not provider_name:
-        raise ValueError(f"Runtime '{runtime or profile}' does not define provider")
-
+    provider_name = get_runtime_provider(kind, runtime)
     key = model_key or profile.get(f"{kind}_model")
     if not key:
         raise ValueError(f"Runtime profile does not define {kind}_model")
@@ -83,9 +90,71 @@ def get_runtime_model_name(
         ) from exc
 
 
-def get_runtime_model_args(runtime: str | None = None) -> dict[str, Any]:
+def get_runtime_model_args(
+    runtime: str | None = None,
+    *,
+    kind: str | None = None,
+) -> dict[str, Any]:
     """Return model constructor args for the runtime profile."""
-    return dict(get_runtime_config(runtime).get("model_args", {}))
+    profile = get_runtime_config(runtime)
+    shared_args = dict(profile.get("model_args", {}))
+    if kind is None:
+        return shared_args
+
+    kind_args = profile.get(f"{kind}_model_args")
+    if kind_args is None and get_runtime_provider(kind, runtime) != profile.get("provider"):
+        return {}
+
+    resolved_args = shared_args
+    if kind_args:
+        resolved_args.update(kind_args)
+    return resolved_args
+
+
+def _sanitize_model_label(value: str) -> str:
+    label = value.rsplit("/", maxsplit=1)[-1]
+    return re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
+
+
+def get_runtime_model_label(
+    kind: str,
+    *,
+    runtime: str | None = None,
+    model_key: str | None = None,
+    model_name: str | None = None,
+) -> str:
+    """Return a filesystem-safe model label for filenames and paths."""
+    if model_key is not None:
+        return _sanitize_model_label(model_key)
+    if model_name is not None:
+        return _sanitize_model_label(model_name)
+    profile = get_runtime_config(runtime)
+    key = profile.get(f"{kind}_model")
+    if not key:
+        raise ValueError(f"Runtime profile does not define {kind}_model")
+    return _sanitize_model_label(str(key))
+
+
+def get_runtime_experiment_label(runtime: str | None = None) -> str:
+    """Return a compact label for the models used by a runtime profile."""
+    main = get_runtime_model_label("main", runtime=runtime)
+    parts = [main]
+
+    try:
+        guard = get_runtime_model_label("guard", runtime=runtime)
+    except ValueError:
+        guard = None
+    if guard and guard != main:
+        parts.append(f"guard_{guard}")
+
+    try:
+        grade = get_runtime_model_label("grade", runtime=runtime)
+    except ValueError:
+        grade = None
+    if grade and grade != main:
+        parts.append(f"judge_{grade}")
+
+    return "_".join(parts)
 
 
 def get_runtime_generate_config(
@@ -121,5 +190,5 @@ def build_runtime_model(
         model_key=model_key,
         model_name=model_name,
     )
-    model_args = {} if model_name is not None else get_runtime_model_args(runtime)
+    model_args = {} if model_name is not None else get_runtime_model_args(runtime, kind=kind)
     return get_model(resolved_model_name, **model_args)

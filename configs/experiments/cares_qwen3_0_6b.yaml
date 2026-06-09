@@ -1,4 +1,4 @@
-experiment_id: cares_qwen3_0_6b_seed42_limit100
+experiment_id: cares_{model_label}_seed42_limit100
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -9,7 +9,6 @@ dataset:
   prepare: auto
 
 runtime: t4_hf
-model_label: qwen3-0.6b
 limit: 100
 sample_shuffle: 42
 baseline_run: baseline
@@ -47,6 +46,6 @@ runs:
       block_controversial: true
 
 output:
-  log_root: logs/cares/cares_qwen3_0_6b_seed42_limit100
-  report_csv: reports/results/cares_qwen3_0_6b_seed42_limit100.csv
-  report_md: reports/results/cares_qwen3_0_6b_seed42_limit100.md
+  log_root: logs/cares/{experiment_id}
+  report_csv: reports/results/{experiment_id}.csv
+  report_md: reports/results/{experiment_id}.md

@@ -12,6 +12,14 @@
 configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml
 ```
 
+Альтернативные model-specific matrix configs:
+
+```text
+configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml
+configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml
+configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml
+```
+
 Она запускает четыре условия на одном и том же sample set:
 
 | run_id | policy | Что проверяет |
@@ -144,7 +152,36 @@ CONFIG=configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
-RUNTIME=t4_hf \
+bash scripts/run_cares_experiments.sh
+```
+
+Gemma 3 1B:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_1b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+bash scripts/run_cares_experiments.sh
+```
+
+Gemma 3 3B:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_gemma3_3b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
+bash scripts/run_cares_experiments.sh
+```
+
+OLMo 1B:
+
+```bash
+CONFIG=configs/experiments/cares_baseline_prompt_guardrail_olmo_1b.yaml \
+LIMIT=100 \
+DATASET_SIZE=300 \
+SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -252,7 +289,7 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 ```bash
 python scripts/report_medical_safety_metrics.py \
   --log-root logs/cares/manual \
-  --run-config config/cares_experiment_runs.tsv \
+  --run-config configs/cares_experiment_runs.tsv \
   --baseline-run baseline \
   --model qwen3-0.6b_qwen-2.5-72b-judge \
   --csv-out reports/results/cares_manual_safety.csv \
@@ -272,7 +309,7 @@ python scripts/report_medical_safety_metrics.py \
 | `DATASET_SPLIT` | config value | CARES split для подготовки |
 | `DATASET_SIZE` | config value | сколько CARES examples подготовить локально |
 | `DATASET_SEED` | config value | seed для подготовки subset |
-| `RUNTIME` | config value | runtime profile из `config/config.yaml` |
+| `RUNTIME` | config value | runtime profile из `configs/config.yaml` |
 | `MODEL_LABEL` | config value | label модели в отчете |
 | `LOG_ROOT` | config value | куда писать `.eval` логи |
 | `REPORT_MD` | config value | markdown отчет |

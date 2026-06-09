@@ -1,6 +1,6 @@
 # Deployment: GPU inference on Tesla T4 16 GB
 
-Цель профиля `t4_hf` в [config/config.yaml](config/config.yaml): запускать основной LLM-инференс и режим с защитой `qwen3_guardrail` на одной GPU Tesla T4 16 GB без отдельного Ollama/OpenRouter сервера.
+Цель профиля `t4_hf` в [configs/config.yaml](configs/config.yaml): запускать основной LLM-инференс и режим с защитой `qwen3_guardrail` на одной GPU Tesla T4 16 GB без отдельного Ollama/OpenRouter сервера.
 
 ## Ресурсы
 

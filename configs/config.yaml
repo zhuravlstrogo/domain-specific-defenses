@@ -32,6 +32,7 @@ provider:
       qwen3-0.6b: ollama/qwen3:0.6b
       qwen3-1.7b: ollama/qwen3:1.7b
       gemma3-1b: ollama/gemma3:1b
+      gemma3-3b: ollama/gemma3:3b
       olmo-1b: ollama/olmo2:1b
 
   openrouter:
@@ -68,6 +69,109 @@ runtime:
 
     generate:
       max_connections: 4
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  t4_hf_openrouter_judge:
+    provider: t4_hf
+    grade_provider: openrouter
+    main_model: qwen3-0.6b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 4
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  ollama_gemma3_1b_openrouter_judge:
+    provider: ollama
+    guard_provider: t4_hf
+    grade_provider: openrouter
+    main_model: gemma3-1b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    guard_model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 1
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  ollama_gemma3_3b_openrouter_judge:
+    provider: ollama
+    guard_provider: t4_hf
+    grade_provider: openrouter
+    main_model: gemma3-3b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    guard_model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 1
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  ollama_olmo_1b_openrouter_judge:
+    provider: ollama
+    guard_provider: t4_hf
+    grade_provider: openrouter
+    main_model: olmo-1b
+    guard_model: qwen3-guard-0.6b
+    grade_model: qwen-2.5-72b-instruct
+
+    guard_model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 1
       temperature: 0.0
       top_p: 1.0
       seed: 42
