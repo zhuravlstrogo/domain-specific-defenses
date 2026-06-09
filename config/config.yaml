@@ -40,6 +40,7 @@ provider:
       qwen3-0.6b: openai/qwen/qwen3-0.6b-04-28:free
       qwen3-1.7b: openai/qwen/qwen3-1.7b
       gemma3-1b: openai/google/gemma-3-1b-it:free
+      gpt-4o-mini: openai/openai/gpt-4o-mini
 
 # Runtime profile used by experiment tasks when --model is not provided.
 # The default profile keeps both the main LLM and Qwen3Guard on the same T4.

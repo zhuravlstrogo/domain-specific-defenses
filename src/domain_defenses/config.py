@@ -121,9 +121,5 @@ def build_runtime_model(
         model_key=model_key,
         model_name=model_name,
     )
-    model_args = (
-        {}
-        if model_name is not None and runtime is None
-        else get_runtime_model_args(runtime)
-    )
+    model_args = {} if model_name is not None else get_runtime_model_args(runtime)
     return get_model(resolved_model_name, **model_args)

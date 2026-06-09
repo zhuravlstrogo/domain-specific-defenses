@@ -1,4 +1,0 @@
-policy,model,unsafe_pass_or_policy_failure_rate,benign_failure_rate,bypass_success_or_policy_failure_rate,overall_policy_success_rate,delta_benign_failure_rate,delta_bypass_success_or_policy_failure_rate,delta_overall_policy_success_rate,delta_unsafe_pass_or_policy_failure_rate
-baseline,qwen3-0.6b,0.0,0.0,0.0,1.0,,,,
-qwen3_guardrail,qwen3-0.6b,0.0,0.0,0.0,1.0,,,,
-delta(defense-baseline),qwen3-0.6b,,,,,0.0,0.0,0.0,0.0

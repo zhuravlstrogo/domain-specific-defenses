@@ -1,0 +1,137 @@
+{
+  "experiment_id": "cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100",
+  "created_at": "2026-06-09T05:18:21.028048+00:00",
+  "config_path": "/home/ubuntu/domain-specific-defenses/configs/experiments/cares_baseline_prompt_guardrail_qwen3_0_6b.yaml",
+  "config": {
+    "experiment_id": "cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100",
+    "task": "experiments/medical_safety_eval.py@medical_safety",
+    "dataset": {
+      "path": "data/processed/cares_18k_v1.jsonl",
+      "split": "test",
+      "size": 300,
+      "seed": 42,
+      "prepare": "auto"
+    },
+    "runtime": "t4_hf",
+    "model_label": "qwen3-0.6b",
+    "limit": 100,
+    "sample_shuffle": 42,
+    "baseline_run": "baseline",
+    "runs": [
+      {
+        "id": "baseline",
+        "description": "No defense / neutral assistant",
+        "task_args": {
+          "policy": "baseline"
+        }
+      },
+      {
+        "id": "prompt_policy",
+        "description": "Medical domain prompt policy",
+        "task_args": {
+          "policy": "prompt_policy"
+        }
+      },
+      {
+        "id": "qwen3_guardrail",
+        "description": "Qwen3Guard input/output filter, blocks Unsafe and Controversial",
+        "task_args": {
+          "policy": "qwen3_guardrail",
+          "block_controversial": true
+        }
+      }
+    ],
+    "output": {
+      "log_root": "logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100",
+      "report_csv": "reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.csv",
+      "report_md": "reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.md"
+    }
+  },
+  "git": {
+    "commit": "c621c246e22b0b3404cfbe48077fd24467eea819",
+    "dirty": true,
+    "status_short": "D logs/cares/baseline/2026-06-08T11-49-56-00-00_medical-safety_2w5VLBaC6dyeoPvgEC24ks.eval\n D logs/cares/cares_qwen3_0_6b_seed42_limit100/run_config.tsv\n D logs/cares/qwen3_guardrail/2026-06-08T11-55-35-00-00_medical-safety_dBFsidBZpmMWHC3xP5f4n5.eval\n D reports/README.md\n D reports/results/cares_qwen3_0.6b_safety.csv\n D reports/results/cares_qwen3_0.6b_safety.md\n D reports/results/qwen3_0.6b_robustness_v1.csv\n D reports/results/qwen3_0.6b_robustness_v1.md\n?? logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/"
+  },
+  "dataset": {
+    "path": "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+    "sha256": "370fc51aa0f2619f85bf977e2bd8ceed045b6fd3899743a288705d7445c7aa82",
+    "prepare_command": null
+  },
+  "runtime": "t4_hf",
+  "model_label": "qwen3-0.6b",
+  "limit": 100,
+  "sample_shuffle": 42,
+  "baseline_run": "baseline",
+  "generated_run_config": "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/run_config.tsv",
+  "eval_commands": [
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "100",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/baseline",
+      "-T",
+      "policy=baseline"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "100",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/prompt_policy",
+      "-T",
+      "policy=prompt_policy"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "100",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/qwen3_guardrail",
+      "-T",
+      "policy=qwen3_guardrail",
+      "-T",
+      "block_controversial=true"
+    ]
+  ],
+  "report_command": [
+    "/home/ubuntu/.venv/bin/python",
+    "scripts/report_medical_safety_metrics.py",
+    "--log-root",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100",
+    "--run-config",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100/run_config.tsv",
+    "--baseline-run",
+    "baseline",
+    "--model",
+    "qwen3-0.6b",
+    "--csv-out",
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.csv",
+    "--md-out",
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_baseline_prompt_guardrail_qwen3_0_6b_seed42_limit100.md"
+  ]
+}

@@ -4,6 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+if [[ -f .env ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
+fi
+
+if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+    export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}"
+    export OPENAI_API_KEY="${OPENAI_API_KEY:-$OPENROUTER_API_KEY}"
+fi
+
 CONFIG="${CONFIG:-configs/experiments/cares_qwen3_0_6b.yaml}"
 
 args=(python scripts/run_experiment_matrix.py "$CONFIG")
