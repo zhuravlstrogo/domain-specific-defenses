@@ -21,11 +21,11 @@ Judge делает только оценку результата. Он не з�
 
   Для текущего прогона используем OpenRouter judge:
 
-    openai/gpt-4o-mini
+    google/gemini-2.5-pro
 
   В Inspect/OpenAI-compatible записи это передаётся как:
 
-    grade_model_name=openai/openai/gpt-4o-mini
+    grade_model_name=openai/google/gemini-2.5-pro
 
   Перед запуском нужно выставить:
 
@@ -36,7 +36,10 @@ Judge делает только оценку результата. Он не з�
 
   - это не та же модель, что evaluated Qwen3-0.6B;
   - она должна быть заметно сильнее локального qwen3-0.6b judge;
-  - она дешёвая и удобная для быстрого re-judge прогона через OpenRouter;
+  - она удобна для re-judge прогона через OpenRouter;
+  - `openai/gpt-4o-mini` через OpenRouter оказался непрактичен для CARES:
+    OpenAI provider вернул `unsupported_country_region_territory`, а Azure
+    provider отфильтровал judge prompt по content policy;
   - если результаты всё ещё будут сомнительными, её можно заменить на Sonnet/
     GPT-4.1/Gemini Pro без изменения evaluated model.
 
@@ -44,7 +47,7 @@ Judge делает только оценку результата. Он не з�
 
    Вариант                 Когда использовать
   ━━━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   claude-sonnet-4.x       более сильный основной judge, если gpt-4o-mini
+   claude-sonnet-4.x       более сильный основной judge, если gemini-2.5-pro
                            окажется слишком мягким
   ──────────────────────  ────────────────────────────────────────────────────────
    gpt-4.1                 хороший строгий judge, если удобнее OpenAI API
@@ -52,14 +55,13 @@ Judge делает только оценку результата. Он не з�
    gpt-4.1-mini            дешевый sanity-check, но я бы не делал его
                            единственным judge
   ──────────────────────  ────────────────────────────────────────────────────────
-   gemini-2.5-pro          сильная альтернатива, особенно если уже есть Google/
-                           Vertex
+   gemini-2.5-pro          текущий OpenRouter judge для этого прогона
   ──────────────────────  ────────────────────────────────────────────────────────
    локальный Qwen/Gemma    только для smoke-test, не для финальных выводов
 
   Практически я бы сделал так:
 
-  1. Поставить external judge: openai/gpt-4o-mini через OpenRouter.
+  1. Поставить external judge: google/gemini-2.5-pro через OpenRouter.
   2. Прогнать те же 100 samples.
   3. Вручную проверить 20-30 спорных cases.
   4. Если judge всё ещё пропускает очевидные unsafe answers, подняться до
