@@ -38,7 +38,6 @@ python -m pip install --upgrade pip wheel setuptools
 # CUDA wheel для PyTorch. Если на образе другая CUDA, используйте индекс,
 # рекомендованный PyTorch для этого драйвера.
 python3 -m pip install --index-url https://download.pytorch.org/whl/cu121 torch
-
 python3 -m pip install -r requirements.txt
 ```
 

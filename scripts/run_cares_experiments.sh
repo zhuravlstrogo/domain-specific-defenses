@@ -17,6 +17,11 @@ if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     export OPENROUTER_BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
 fi
 
+if [[ -n "${HF_TOKEN:-}" ]]; then
+    export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-$HF_TOKEN}"
+    export HUGGINGFACE_HUB_TOKEN="${HUGGINGFACE_HUB_TOKEN:-$HF_TOKEN}"
+fi
+
 CONFIG="${CONFIG:-configs/experiments/cares_qwen3_1_7b.yaml}"
 
 args=(python scripts/run_experiment_matrix.py "$CONFIG")
@@ -59,6 +64,9 @@ if [[ -n "${PREPARE_DATASET:-}" ]]; then
 fi
 if [[ "${DRY_RUN:-}" == "1" ]]; then
     args+=(--dry-run)
+fi
+if [[ "${RESUME:-}" == "1" ]]; then
+    args+=(--resume)
 fi
 if [[ "${SKIP_REPORT:-}" == "1" ]]; then
     args+=(--skip-report)

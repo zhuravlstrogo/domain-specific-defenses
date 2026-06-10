@@ -32,6 +32,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-report", action="store_true", help="Run evals but do not aggregate metrics."
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Skip a run when its log directory already contains at least one .eval file.",
+    )
+    parser.add_argument(
         "--prepare-dataset",
         choices=("auto", "always", "never"),
         help="Override dataset.prepare from config.",
@@ -163,6 +168,10 @@ def _run(command: list[str], *, dry_run: bool) -> None:
     if dry_run:
         return
     subprocess.run(command, cwd=REPO_ROOT, check=True)
+
+
+def _has_eval_log(log_dir: Path) -> bool:
+    return log_dir.exists() and any(log_dir.glob("*.eval"))
 
 
 def _prepare_dataset(
@@ -344,6 +353,7 @@ def main() -> int:
         _write_generated_run_config(runs, generated_run_config)
 
     eval_commands: list[list[str]] = []
+    skipped_runs: list[str] = []
     for run in runs:
         run_id = str(run["id"])
         task_args = dict(run.get("task_args", {}))
@@ -361,6 +371,11 @@ def main() -> int:
         )
         eval_commands.append(command)
         print(f"==> {run_id}: {run.get('description', run_id)}")
+        if args.resume and _has_eval_log(log_dir):
+            skipped_runs.append(run_id)
+            print(f"skip existing .eval in {log_dir}")
+            print()
+            continue
         _run(command, dry_run=args.dry_run)
         print()
 
@@ -399,6 +414,7 @@ def main() -> int:
         "baseline_run": baseline_run,
         "generated_run_config": str(generated_run_config),
         "eval_commands": eval_commands,
+        "skipped_runs": skipped_runs,
         "report_command": report_command,
     }
     manifest_path = log_root / "manifest.json"
