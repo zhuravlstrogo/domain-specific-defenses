@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pandas as pd
 
-from domain_defenses.analysis import summarize_medical_eval
+from domain_defenses.analysis import (
+    eval_log_has_scored_samples,
+    eval_log_is_complete_and_scored,
+    summarize_medical_eval,
+)
 
 
 def test_bypass_metric_only_counts_risky_bypass_prompts() -> None:
@@ -72,3 +78,23 @@ def test_structured_medical_metrics_use_component_labels() -> None:
     assert metrics["bypass_success_rate"] == 1.0
     assert metrics["benign_utility_score"] == 0.2
     assert metrics["utility_degradation_rate"] == 0.8
+
+
+def test_eval_log_completion_requires_success_status_and_scores() -> None:
+    scored_sample = SimpleNamespace(
+        scores={"medical_safety": SimpleNamespace(value="C")}
+    )
+    successful_log = SimpleNamespace(status="success", samples=[scored_sample])
+    error_log = SimpleNamespace(status="error", samples=[scored_sample])
+
+    assert eval_log_has_scored_samples(successful_log)
+    assert eval_log_is_complete_and_scored(successful_log)
+    assert not eval_log_is_complete_and_scored(error_log)
+
+
+def test_eval_log_completion_rejects_logs_without_scores() -> None:
+    unscored_sample = SimpleNamespace(scores={})
+    log = SimpleNamespace(status="success", samples=[unscored_sample])
+
+    assert not eval_log_has_scored_samples(log)
+    assert not eval_log_is_complete_and_scored(log)

@@ -15,7 +15,11 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from domain_defenses.analysis import log_to_df, summarize_medical_eval
+from domain_defenses.analysis import (
+    eval_log_is_complete_and_scored,
+    log_to_df,
+    summarize_medical_eval,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,18 +30,18 @@ def parse_args() -> argparse.Namespace:
     baseline.add_argument("--baseline-log", help="Path to baseline .eval log.")
     baseline.add_argument(
         "--baseline-log-dir",
-        help="Directory containing baseline .eval logs; latest file is used.",
+        help="Directory containing baseline .eval logs; latest successful scored file is used.",
     )
 
     defense = parser.add_mutually_exclusive_group()
     defense.add_argument("--defense-log", help="Path to defense .eval log.")
     defense.add_argument(
         "--defense-log-dir",
-        help="Directory containing defense .eval logs; latest file is used.",
+        help="Directory containing defense .eval logs; latest successful scored file is used.",
     )
     parser.add_argument(
         "--log-root",
-        help="Directory containing one subdirectory per run; latest .eval in each is used.",
+        help="Directory containing one subdirectory per run; latest successful scored .eval in each is used.",
     )
     parser.add_argument(
         "--run-config",
@@ -69,7 +73,25 @@ def _latest_eval(log_dir: str) -> Path:
     files = sorted(Path(log_dir).glob("*.eval"), key=lambda p: p.stat().st_mtime)
     if not files:
         raise FileNotFoundError(f"No .eval files found in {log_dir}")
-    return files[-1]
+
+    rejected: list[str] = []
+    for path in reversed(files):
+        try:
+            log = read_eval_log(str(path))
+        except Exception as exc:
+            rejected.append(f"{path.name}: unreadable ({exc})")
+            continue
+        if eval_log_is_complete_and_scored(log):
+            return path
+        status = getattr(log, "status", None)
+        sample_count = len(getattr(log, "samples", None) or [])
+        rejected.append(f"{path.name}: status={status!r}, samples={sample_count}")
+
+    detail = "; ".join(rejected)
+    raise ValueError(
+        f"No successful scored .eval files found in {log_dir}. "
+        f"Rejected candidates: {detail}"
+    )
 
 
 def _resolve_log(log: str | None, log_dir: str | None) -> Path:

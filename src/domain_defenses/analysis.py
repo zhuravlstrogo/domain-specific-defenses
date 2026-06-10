@@ -62,6 +62,23 @@ def log_to_df(log: Any) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def eval_log_has_scored_samples(log: Any) -> bool:
+    """Return true when an EvalLog contains at least one usable binary score."""
+    for sample in getattr(log, "samples", None) or []:
+        score = _first_score(sample)
+        if _score_to_binary(getattr(score, "value", None)) is not None:
+            return True
+    return False
+
+
+def eval_log_is_complete_and_scored(log: Any) -> bool:
+    """Return true for completed Inspect logs that are usable for metrics."""
+    status = getattr(log, "status", None)
+    if status is not None and str(status).lower() != "success":
+        return False
+    return eval_log_has_scored_samples(log)
+
+
 def _has_observed_values(df: pd.DataFrame, column: str) -> bool:
     return column in df.columns and bool(df[column].notna().any())
 

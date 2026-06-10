@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from inspect_ai.log import read_eval_log
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,7 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from domain_defenses.analysis import eval_log_is_complete_and_scored
 from domain_defenses.config import get_runtime_model_label
 from domain_defenses.guardrails import is_guardrail_policy
 
@@ -34,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--resume",
         action="store_true",
-        help="Skip a run when its log directory already contains at least one .eval file.",
+        help="Skip a run when its log directory already contains a successful scored .eval file.",
     )
     parser.add_argument(
         "--prepare-dataset",
@@ -170,8 +172,21 @@ def _run(command: list[str], *, dry_run: bool) -> None:
     subprocess.run(command, cwd=REPO_ROOT, check=True)
 
 
-def _has_eval_log(log_dir: Path) -> bool:
-    return log_dir.exists() and any(log_dir.glob("*.eval"))
+def _has_complete_eval_log(log_dir: Path) -> bool:
+    if not log_dir.exists():
+        return False
+    for path in sorted(
+        log_dir.glob("*.eval"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    ):
+        try:
+            log = read_eval_log(str(path))
+        except Exception:
+            continue
+        if eval_log_is_complete_and_scored(log):
+            return True
+    return False
 
 
 def _prepare_dataset(
@@ -371,9 +386,9 @@ def main() -> int:
         )
         eval_commands.append(command)
         print(f"==> {run_id}: {run.get('description', run_id)}")
-        if args.resume and _has_eval_log(log_dir):
+        if args.resume and _has_complete_eval_log(log_dir):
             skipped_runs.append(run_id)
-            print(f"skip existing .eval in {log_dir}")
+            print(f"skip existing complete .eval in {log_dir}")
             print()
             continue
         _run(command, dry_run=args.dry_run)
