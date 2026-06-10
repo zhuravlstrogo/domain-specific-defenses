@@ -1,7 +1,7 @@
 {
-  "experiment_id": "cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100",
-  "created_at": "2026-06-10T08:14:37.431784+00:00",
-  "config_path": "/home/ubuntu/domain-specific-defenses/configs/experiments/cares_gemma_2_2b_it.yaml",
+  "experiment_id": "cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100",
+  "created_at": "2026-06-10T08:51:22.150084+00:00",
+  "config_path": "/home/ubuntu/domain-specific-defenses/configs/experiments/cares_olmo_2_0425_1b_instruct.yaml",
   "config": {
     "experiment_id": "cares_{model_label}_seed42_limit100",
     "task": "experiments/medical_safety_eval.py@medical_safety",
@@ -12,7 +12,7 @@
       "seed": 42,
       "prepare": "auto"
     },
-    "runtime": "t4_hf_gemma_2_2b_it_openrouter_judge",
+    "runtime": "t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
     "limit": 100,
     "sample_shuffle": 42,
     "baseline_run": "baseline",
@@ -70,26 +70,26 @@
   "git": {
     "commit": "030c5bec17480981dfd897dd893c65b130471a06",
     "dirty": true,
-    "status_short": "?? logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline/2026-06-10T08-04-51-00-00_medical-safety_gVHtkKe3V3oiHKLhAjbGLJ.eval"
+    "status_short": "M logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/manifest.json\n?? logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline/2026-06-10T08-04-51-00-00_medical-safety_gVHtkKe3V3oiHKLhAjbGLJ.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/\n?? reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv\n?? reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md"
   },
   "dataset": {
     "path": "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
     "sha256": "370fc51aa0f2619f85bf977e2bd8ceed045b6fd3899743a288705d7445c7aa82",
     "prepare_command": null
   },
-  "runtime": "t4_hf_gemma_2_2b_it_openrouter_judge",
-  "model_label": "gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct",
+  "runtime": "t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
+  "model_label": "olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct",
   "limit": 100,
   "sample_shuffle": 42,
   "baseline_run": "baseline",
-  "generated_run_config": "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/run_config.tsv",
+  "generated_run_config": "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/run_config.tsv",
   "eval_commands": [
     [
       "inspect",
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -97,7 +97,7 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline",
       "-T",
       "policy=baseline"
     ],
@@ -106,7 +106,7 @@
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -114,7 +114,7 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/prompt_policy",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/prompt_policy",
       "-T",
       "policy=prompt_policy"
     ],
@@ -123,7 +123,7 @@
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -131,7 +131,7 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/strict_prompt_policy",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/strict_prompt_policy",
       "-T",
       "policy=strict_prompt_policy"
     ],
@@ -140,7 +140,7 @@
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -148,7 +148,7 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/guardrail_style",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/guardrail_style",
       "-T",
       "policy=guardrail_style"
     ],
@@ -157,7 +157,7 @@
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -165,7 +165,7 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/retrieval_constraints",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/retrieval_constraints",
       "-T",
       "policy=retrieval_constraints"
     ],
@@ -174,7 +174,7 @@
       "eval",
       "experiments/medical_safety_eval.py@medical_safety",
       "-T",
-      "runtime=t4_hf_gemma_2_2b_it_openrouter_judge",
+      "runtime=t4_hf_olmo2_0425_1b_instruct_openrouter_judge",
       "-T",
       "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
       "--limit",
@@ -182,34 +182,28 @@
       "--sample-shuffle",
       "42",
       "--log-dir",
-      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/qwen3_guardrail",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/qwen3_guardrail",
       "-T",
       "policy=qwen3_guardrail",
       "-T",
       "block_controversial=true"
     ]
   ],
-  "skipped_runs": [
-    "prompt_policy",
-    "strict_prompt_policy",
-    "guardrail_style",
-    "retrieval_constraints",
-    "qwen3_guardrail"
-  ],
+  "skipped_runs": [],
   "report_command": [
     "/home/ubuntu/domain-specific-defenses/.venv/bin/python",
     "scripts/report_medical_safety_metrics.py",
     "--log-root",
-    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100",
     "--run-config",
-    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/run_config.tsv",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/run_config.tsv",
     "--baseline-run",
     "baseline",
     "--model",
-    "gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct",
+    "olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct",
     "--csv-out",
-    "/home/ubuntu/domain-specific-defenses/reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv",
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv",
     "--md-out",
-    "/home/ubuntu/domain-specific-defenses/reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md"
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md"
   ]
 }
