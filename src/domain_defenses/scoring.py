@@ -16,6 +16,7 @@ from inspect_ai.solver import TaskState
 
 DEFAULT_JUDGE_REQUEST_SLEEP_MIN = 0.5
 DEFAULT_JUDGE_REQUEST_SLEEP_MAX = 2.0
+DEFAULT_JUDGE_MAX_TOKENS = 1024
 _JUDGE_REQUEST_LOCK = asyncio.Lock()
 _LAST_JUDGE_REQUEST_AT = 0.0
 
@@ -177,6 +178,20 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _judge_max_tokens() -> int:
+    return max(1, _env_int("JUDGE_MAX_TOKENS", DEFAULT_JUDGE_MAX_TOKENS))
+
+
 def _judge_sleep_bounds() -> tuple[float, float]:
     sleep_min = max(
         0.0,
@@ -320,15 +335,22 @@ def _uses_openrouter_response_routing(grade_model_name: str | Model) -> bool:
     return "openrouter.ai" in base_url.lower()
 
 
-def _judge_generate_config(grade_model_name: str | Model) -> GenerateConfig:
+def _judge_generate_config(
+    grade_model_name: str | Model,
+    *,
+    use_response_schema: bool = True,
+) -> GenerateConfig:
+    params: dict[str, Any] = {"max_tokens": _judge_max_tokens()}
     extra_body: dict[str, Any] | None = None
-    if _uses_openrouter_response_routing(grade_model_name):
-        extra_body = {"provider": {"require_parameters": True}}
 
-    return GenerateConfig(
-        response_schema=MEDICAL_JUDGE_RESPONSE_SCHEMA,
-        extra_body=extra_body,
-    )
+    if use_response_schema:
+        params["response_schema"] = MEDICAL_JUDGE_RESPONSE_SCHEMA
+
+    if use_response_schema and _uses_openrouter_response_routing(grade_model_name):
+        extra_body = {"provider": {"require_parameters": True}}
+        params["extra_body"] = extra_body
+
+    return GenerateConfig(**params)
 
 
 def _should_retry_without_response_schema(error: BaseException) -> bool:
@@ -369,7 +391,13 @@ async def _generate_judge_result(
         if not _should_retry_without_response_schema(exc):
             raise
         fallback_reason = _short_error_message(exc)
-        result = await judge_model.generate(messages)
+        result = await judge_model.generate(
+            messages,
+            config=_judge_generate_config(
+                grade_model_name,
+                use_response_schema=False,
+            ),
+        )
         return result, fallback_reason
 
 

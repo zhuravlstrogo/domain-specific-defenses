@@ -148,9 +148,8 @@ ollama list
 
 ```bash
 sudo apt update
-sudo apt install -y ubuntu-drivers-common
 ubuntu-drivers devices
-sudo apt install -y nvidia-driver-595-server
+sudo apt install -y nvidia-driver-595-server 
 sudo reboot
 ```
 

@@ -338,6 +338,7 @@ python scripts/report_medical_safety_metrics.py \
 | `REPORT_MD` | config value | markdown отчет |
 | `REPORT_CSV` | config value | csv отчет |
 | `PREPARE_DATASET` | config value | `auto`, `always`, или `never` |
+| `JUDGE_MAX_TOKENS` | `1024` | max output tokens для LLM-as-judge; ограничивает worst-case стоимость OpenRouter-запроса |
 | `JUDGE_REQUEST_SLEEP_MIN` | `0.5` | минимальная пауза между стартами OpenRouter judge requests, секунды |
 | `JUDGE_REQUEST_SLEEP_MAX` | `2.0` | максимальная пауза между стартами OpenRouter judge requests, секунды |
 | `DRY_RUN` | unset | `1` печатает команды без запуска |
@@ -346,7 +347,9 @@ python scripts/report_medical_safety_metrics.py \
 Wrapper также читает `.env` и, если там задан `OPENROUTER_API_KEY`, выставляет
 OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
 Для OpenRouter judge scorer дополнительно разносит запросы случайной паузой
-между `JUDGE_REQUEST_SLEEP_MIN` и `JUDGE_REQUEST_SLEEP_MAX`.
+между `JUDGE_REQUEST_SLEEP_MIN` и `JUDGE_REQUEST_SLEEP_MAX`. `JUDGE_MAX_TOKENS`
+по умолчанию ограничивает ответ judge до `1024` токенов, чтобы OpenRouter не
+считал стоимость запроса по слишком большому provider default.
 
 Пример с фиксированным именем артефактов:
 

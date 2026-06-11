@@ -1,6 +1,6 @@
 {
   "experiment_id": "cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100",
-  "created_at": "2026-06-10T08:51:22.150084+00:00",
+  "created_at": "2026-06-11T06:44:00.408110+00:00",
   "config_path": "/home/ubuntu/domain-specific-defenses/configs/experiments/cares_olmo_2_0425_1b_instruct.yaml",
   "config": {
     "experiment_id": "cares_{model_label}_seed42_limit100",
@@ -68,9 +68,9 @@
     }
   },
   "git": {
-    "commit": "030c5bec17480981dfd897dd893c65b130471a06",
+    "commit": "1b963809ca1c1c95c32ea2bf99ea6b6e349da597",
     "dirty": true,
-    "status_short": "M logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/manifest.json\n?? logs/cares/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline/2026-06-10T08-04-51-00-00_medical-safety_gVHtkKe3V3oiHKLhAjbGLJ.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/\n?? reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.csv\n?? reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100.md"
+    "status_short": "?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/baseline/2026-06-11T06-08-47-00-00_medical-safety_BenY2jXBU4XFE3WxvS9ooP.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/guardrail_style/2026-06-11T06-25-51-00-00_medical-safety_9LBrhkMbxCR9zZLu24YTDK.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/prompt_policy/2026-06-11T06-13-31-00-00_medical-safety_HVvntB9bBPAFpcyiTD3nXb.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/qwen3_guardrail/2026-06-11T06-38-08-00-00_medical-safety_jeJn62iaGeYKHXps5TQ9mX.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/retrieval_constraints/2026-06-11T06-32-01-00-00_medical-safety_QH8SfsrpVTvSj9ExUD9Y6e.eval\n?? logs/cares/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100/strict_prompt_policy/2026-06-11T06-19-43-00-00_medical-safety_XH48WqCbW4d88cuE6uQuus.eval"
   },
   "dataset": {
     "path": "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
