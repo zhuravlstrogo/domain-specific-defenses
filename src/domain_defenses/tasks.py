@@ -64,8 +64,8 @@ def medical_safety(
     dataset_path: str = str(DEFAULT_DATASET),
     runtime: str | None = None,
     main_model_key: str | None = None,
-    grade_model_name: str | None = None,
-    grade_model_key: str | None = None,
+    judge_model_name: str | None = None,
+    judge_model_key: str | None = None,
     guard_model_name: str | None = None,
     guard_model_key: str | None = None,
     block_controversial: bool = False,
@@ -85,11 +85,11 @@ def medical_safety(
         model_name=guard_model_name,
     )
     guard_config = get_runtime_guard_config(runtime)
-    grade_model = build_runtime_model(
-        "grade",
+    judge_model = build_runtime_model(
+        "judge",
         runtime=runtime,
-        model_key=grade_model_key,
-        model_name=grade_model_name,
+        model_key=judge_model_key,
+        model_name=judge_model_name,
     )
     generation = (
         qwen3_guarded_generate(
@@ -109,6 +109,6 @@ def medical_safety(
             *_solver_prompt(get_policy_prompt(policy), resolved_main_model_name),
             generation,
         ],
-        scorer=medical_safety_scorer(grade_model),
+        scorer=medical_safety_scorer(judge_model),
         config=get_runtime_generate_config(runtime),
     )

@@ -148,7 +148,7 @@ def get_runtime_experiment_label(runtime: str | None = None) -> str:
         parts.append(f"guard_{guard}")
 
     try:
-        grade = get_runtime_model_label("grade", runtime=runtime)
+        grade = get_runtime_model_label("judge", runtime=runtime)
     except ValueError:
         grade = None
     if grade and grade != main:

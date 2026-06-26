@@ -38,8 +38,8 @@ run_case \
     "configs/experiments/cares_qwen3_1_7b.yaml" \
     "reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100"
 run_case \
-    "configs/experiments/cares_gemma_2_2b_it.yaml" \
-    "reports/results/cares_gemma_2_2b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100"
+    "configs/experiments/cares_gemma_3_4b_it.yaml" \
+    "reports/results/cares_gemma_3_4b_it_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100"
 run_case \
     "configs/experiments/cares_olmo_2_0425_1b_instruct.yaml" \
     "reports/results/cares_olmo2_0425_1b_instruct_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_seed42_limit100"

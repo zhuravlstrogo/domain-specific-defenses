@@ -26,10 +26,10 @@ def test_runtime_kind_specific_provider_uses_own_model_mapping(monkeypatch) -> N
                 "default": "mixed",
                 "mixed": {
                     "provider": "local",
-                    "grade_provider": "remote",
+                    "judge_provider": "remote",
                     "main_model": "main-a",
                     "guard_model": "guard-a",
-                    "grade_model": "judge-b",
+                    "judge_model": "judge-b",
                     "model_args": {
                         "device": "cuda:0",
                         "dtype": "float16",
@@ -40,14 +40,14 @@ def test_runtime_kind_specific_provider_uses_own_model_mapping(monkeypatch) -> N
     )
 
     assert runtime_config.get_runtime_model_name("main", runtime="mixed") == "hf/org/main-a"
-    assert runtime_config.get_runtime_model_name("grade", runtime="mixed") == (
+    assert runtime_config.get_runtime_model_name("judge", runtime="mixed") == (
         "openai-api/openrouter/org/judge-b"
     )
     assert runtime_config.get_runtime_model_args(runtime="mixed", kind="main") == {
         "device": "cuda:0",
         "dtype": "float16",
     }
-    assert runtime_config.get_runtime_model_args(runtime="mixed", kind="grade") == {}
+    assert runtime_config.get_runtime_model_args(runtime="mixed", kind="judge") == {}
 
 
 def test_runtime_guard_provider_uses_kind_specific_args(monkeypatch) -> None:
@@ -78,10 +78,10 @@ def test_runtime_guard_provider_uses_kind_specific_args(monkeypatch) -> None:
                 "mixed": {
                     "provider": "local",
                     "guard_provider": "guard",
-                    "grade_provider": "judge",
+                    "judge_provider": "judge",
                     "main_model": "main-a",
                     "guard_model": "guard-a",
-                    "grade_model": "judge-b",
+                    "judge_model": "judge-b",
                     "guard_model_args": {
                         "device": "cuda:0",
                         "dtype": "float16",
@@ -96,7 +96,7 @@ def test_runtime_guard_provider_uses_kind_specific_args(monkeypatch) -> None:
         "device": "cuda:0",
         "dtype": "float16",
     }
-    assert runtime_config.get_runtime_model_args(runtime="mixed", kind="grade") == {}
+    assert runtime_config.get_runtime_model_args(runtime="mixed", kind="judge") == {}
 
 
 def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch) -> None:
@@ -120,7 +120,7 @@ def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch)
                     "provider": "local",
                     "main_model": "qwen3-1.7b",
                     "guard_model": "qwen3-guard-0.6b",
-                    "grade_model": "qwen-2.5-72b-instruct",
+                    "judge_model": "qwen-2.5-72b-instruct",
                 },
             },
         },

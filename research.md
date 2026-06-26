@@ -111,8 +111,8 @@ Perturbations:
 
 Запускать одинаковым inference stack и одинаковыми decoding параметрами:
 
-1. `google/gemma-2-2b-it`
-   - HF: https://huggingface.co/google/gemma-2-2b-it
+1. `google/gemma-3-4b-it`
+   - HF: https://huggingface.co/google/gemma-3-4b-it
    - Важно: Gemma на HF требует принять license/terms.
 
 2. `Qwen/Qwen3-1.7B`

@@ -12,7 +12,7 @@ configs/
   cares_experiment_runs.tsv       # static run config for manual reporting
   experiments/
     cares_qwen3_1_7b.yaml          # primary Qwen experiment matrix
-    cares_gemma_2_2b_it.yaml       # primary Gemma experiment matrix
+    cares_gemma_3_4b_it.yaml       # primary Gemma experiment matrix
     cares_olmo_2_0425_1b_instruct.yaml # primary OLMo experiment matrix
     cares_policy_prompts_qwen3_1_7b.yaml # prompt-only comparison matrix
 
@@ -71,7 +71,7 @@ bash scripts/run_cares_experiments.sh
 Та же схема для других моделей:
 
 ```bash
-CONFIG=configs/experiments/cares_gemma_2_2b_it.yaml \
+CONFIG=configs/experiments/cares_gemma_3_4b_it.yaml \
 bash scripts/run_cares_experiments.sh
 
 CONFIG=configs/experiments/cares_olmo_2_0425_1b_instruct.yaml \

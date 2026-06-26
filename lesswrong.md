@@ -184,7 +184,7 @@ LessWrong-ценность здесь не в leaderboard, а в том, что 
 Минимум:
 
 - `ollama/qwen3:1.7b`
-- `ollama/gemma2:2b`
+- `ollama/gemma3:4b`
 - `hf/allenai/OLMo-2-0425-1B-Instruct`
 
 Желательно добавить одну более сильную reference model, если бюджет позволяет. Иначе статья будет про "small local medical safety eval", что нормально, но выводы нужно ограничить.

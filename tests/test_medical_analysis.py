@@ -7,6 +7,7 @@ import pandas as pd
 from domain_defenses.analysis import (
     eval_log_has_scored_samples,
     eval_log_is_complete_and_scored,
+    summarize_by_principle,
     summarize_medical_eval,
 )
 
@@ -78,6 +79,52 @@ def test_structured_medical_metrics_use_component_labels() -> None:
     assert metrics["bypass_success_rate"] == 1.0
     assert metrics["benign_utility_score"] == 0.2
     assert metrics["utility_degradation_rate"] == 0.8
+
+
+def test_summarize_by_principle_groups_by_subtype() -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "category": "risky",
+                "subtype": "cares_principle_4",
+                "bypass_type": "none",
+                "score": 0,
+                "unsafe_pass": True,
+                "over_refusal": None,
+                "bypass_followed": None,
+                "utility_score": None,
+            },
+            {
+                "category": "risky",
+                "subtype": "cares_principle_4",
+                "bypass_type": "none",
+                "score": 1,
+                "unsafe_pass": False,
+                "over_refusal": None,
+                "bypass_followed": None,
+                "utility_score": None,
+            },
+            {
+                "category": "risky",
+                "subtype": "cares_principle_5",
+                "bypass_type": "none",
+                "score": 0,
+                "unsafe_pass": True,
+                "over_refusal": None,
+                "bypass_followed": None,
+                "utility_score": None,
+            },
+        ]
+    )
+
+    rows = summarize_by_principle(df)
+    by_subtype = {r["subtype"]: r for r in rows}
+
+    assert set(by_subtype) == {"cares_principle_4", "cares_principle_5"}
+    assert by_subtype["cares_principle_4"]["n"] == 2
+    assert by_subtype["cares_principle_4"]["unsafe_pass_rate"] == 0.5
+    assert by_subtype["cares_principle_5"]["unsafe_pass_rate"] == 1.0
+    assert by_subtype["cares_principle_4"]["principle"] == "Self-harm and Unsafe Behavior"
 
 
 def test_eval_log_completion_requires_success_status_and_scores() -> None:

@@ -23,7 +23,7 @@ provider:
   t4_hf:
     models:
       qwen3-1.7b: hf/Qwen/Qwen3-1.7B
-      gemma-2-2b-it: hf/google/gemma-2-2b-it
+      gemma-3-4b-it: hf/google/gemma-3-4b-it
       olmo2-0425-1b-instruct: hf/allenai/OLMo-2-0425-1B-Instruct
       qwen3-guard-0.6b: hf/Qwen/Qwen3Guard-Gen-0.6B
 
@@ -31,15 +31,14 @@ provider:
     base_url: http://localhost:11434
     models:
       qwen3-1.7b: ollama/qwen3:1.7b
-      gemma-2-2b-it: ollama/gemma2:2b
+      gemma-3-4b-it: ollama/gemma3:4b
 
   openrouter:
     base_url: https://openrouter.ai/api/v1
     env_key: OPENROUTER_API_KEY
     models:
+      gpt-4o: openai-api/openrouter/openai/gpt-4o
       qwen3-1.7b: openai-api/openrouter/qwen/qwen3-1.7b
-      gpt-4o-mini: openai-api/openrouter/openai/gpt-4o-mini
-      gemini-2.5-pro: openai-api/openrouter/google/gemini-2.5-pro
       qwen-2.5-72b-instruct: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 
 # Runtime profile used by experiment tasks when --model is not provided.
@@ -51,9 +50,10 @@ runtime:
 
   t4_hf:
     provider: t4_hf
+    judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    grade_model: qwen3-1.7b
+    judge_model: gpt-4o
 
     model_args:
       device: cuda:0
@@ -75,10 +75,10 @@ runtime:
 
   t4_hf_qwen3_1_7b_openrouter_judge:
     provider: t4_hf
-    grade_provider: openrouter
+    judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    grade_model: qwen-2.5-72b-instruct
+    judge_model: gpt-4o
 
     model_args:
       device: cuda:0
@@ -98,12 +98,38 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  t4_hf_gemma_2_2b_it_openrouter_judge:
+  t4_hf_qwen3_1_7b_think_openrouter_judge:
     provider: t4_hf
-    grade_provider: openrouter
-    main_model: gemma-2-2b-it
+    judge_provider: openrouter
+    main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    grade_model: qwen-2.5-72b-instruct
+    judge_model: qwen-2.5-72b-instruct
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 2
+      enable_thinking: true
+
+    generate:
+      max_connections: 2
+      max_tokens: 4096
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  t4_hf_gemma_3_4b_it_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: gemma-3-4b-it
+    guard_model: qwen3-guard-0.6b
+    judge_model: gpt-4o
 
     model_args:
       device: cuda:0
@@ -125,10 +151,10 @@ runtime:
 
   t4_hf_olmo2_0425_1b_instruct_openrouter_judge:
     provider: t4_hf
-    grade_provider: openrouter
+    judge_provider: openrouter
     main_model: olmo2-0425-1b-instruct
     guard_model: qwen3-guard-0.6b
-    grade_model: qwen-2.5-72b-instruct
+    judge_model: gpt-4o
 
     model_args:
       device: cuda:0

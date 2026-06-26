@@ -162,10 +162,10 @@ MEDICAL_JUDGE_RESPONSE_SCHEMA = ResponseSchema(
 )
 
 
-def medical_safety_scorer(grade_model_name: str | Model):
+def medical_safety_scorer(judge_model_name: str | Model):
     """Build a structured LLM-as-judge scorer for medical safety behavior."""
 
-    return structured_medical_safety_scorer(grade_model_name)
+    return structured_medical_safety_scorer(judge_model_name)
 
 
 def _env_float(name: str, default: float) -> float:
@@ -204,15 +204,15 @@ def _judge_sleep_bounds() -> tuple[float, float]:
     return sleep_min, sleep_max
 
 
-def _should_throttle_judge_requests(grade_model_name: str | Model) -> bool:
-    if isinstance(grade_model_name, Model):
+def _should_throttle_judge_requests(judge_model_name: str | Model) -> bool:
+    if isinstance(judge_model_name, Model):
         return False
-    model_name = str(grade_model_name)
+    model_name = str(judge_model_name)
     return model_name.startswith("openai/") or model_name.startswith("openai-api/")
 
 
-async def _throttle_judge_request(grade_model_name: str | Model) -> None:
-    if not _should_throttle_judge_requests(grade_model_name):
+async def _throttle_judge_request(judge_model_name: str | Model) -> None:
+    if not _should_throttle_judge_requests(judge_model_name):
         return
 
     sleep_min, sleep_max = _judge_sleep_bounds()
@@ -323,11 +323,11 @@ def _normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _uses_openrouter_response_routing(grade_model_name: str | Model) -> bool:
-    if isinstance(grade_model_name, Model):
+def _uses_openrouter_response_routing(judge_model_name: str | Model) -> bool:
+    if isinstance(judge_model_name, Model):
         return False
 
-    model_name = str(grade_model_name)
+    model_name = str(judge_model_name)
     if "/openrouter/" in model_name or model_name.startswith("openrouter/"):
         return True
 
@@ -336,7 +336,7 @@ def _uses_openrouter_response_routing(grade_model_name: str | Model) -> bool:
 
 
 def _judge_generate_config(
-    grade_model_name: str | Model,
+    judge_model_name: str | Model,
     *,
     use_response_schema: bool = True,
 ) -> GenerateConfig:
@@ -346,7 +346,7 @@ def _judge_generate_config(
     if use_response_schema:
         params["response_schema"] = MEDICAL_JUDGE_RESPONSE_SCHEMA
 
-    if use_response_schema and _uses_openrouter_response_routing(grade_model_name):
+    if use_response_schema and _uses_openrouter_response_routing(judge_model_name):
         extra_body = {"provider": {"require_parameters": True}}
         params["extra_body"] = extra_body
 
@@ -377,14 +377,14 @@ def _should_retry_without_response_schema(error: BaseException) -> bool:
 async def _generate_judge_result(
     judge_model: Model,
     scoring_prompt: str,
-    grade_model_name: str | Model,
+    judge_model_name: str | Model,
 ) -> tuple[Any, str | None]:
     messages = [ChatMessageUser(content=scoring_prompt)]
 
     try:
         result = await judge_model.generate(
             messages,
-            config=_judge_generate_config(grade_model_name),
+            config=_judge_generate_config(judge_model_name),
         )
         return result, None
     except Exception as exc:
@@ -394,7 +394,7 @@ async def _generate_judge_result(
         result = await judge_model.generate(
             messages,
             config=_judge_generate_config(
-                grade_model_name,
+                judge_model_name,
                 use_response_schema=False,
             ),
         )
@@ -402,14 +402,14 @@ async def _generate_judge_result(
 
 
 @scorer(metrics=[accuracy(), stderr()])
-def structured_medical_safety_scorer(grade_model_name: str | Model):
+def structured_medical_safety_scorer(judge_model_name: str | Model):
     """Score medical behavior and preserve component metrics in metadata."""
 
     async def score(state: TaskState, target: Target) -> Score:
         judge_model = (
-            grade_model_name
-            if isinstance(grade_model_name, Model)
-            else get_model(grade_model_name)
+            judge_model_name
+            if isinstance(judge_model_name, Model)
+            else get_model(judge_model_name)
         )
         metadata = dict(state.metadata or {})
         scoring_prompt = MEDICAL_JUDGE_TEMPLATE.format(
@@ -420,11 +420,11 @@ def structured_medical_safety_scorer(grade_model_name: str | Model):
             **metadata,
         )
         try:
-            await _throttle_judge_request(grade_model_name)
+            await _throttle_judge_request(judge_model_name)
             result, response_schema_fallback_reason = await _generate_judge_result(
                 judge_model,
                 scoring_prompt,
-                grade_model_name,
+                judge_model_name,
             )
         except Exception as exc:
             error_message = _short_error_message(exc)

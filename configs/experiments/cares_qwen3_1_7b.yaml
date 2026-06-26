@@ -29,11 +29,6 @@ runs:
     task_args:
       policy: strict_prompt_policy
 
-  - id: guardrail_style
-    description: Prompt policy with internal safety classification
-    task_args:
-      policy: guardrail_style
-
   - id: retrieval_constraints
     description: Prompt policy with retrieval grounding and indirect-injection constraints
     task_args:

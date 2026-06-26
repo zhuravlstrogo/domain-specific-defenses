@@ -235,3 +235,10 @@ task_args:
 `hf/Qwen/Qwen3Guard-Gen-0.6B`. В самом solver также есть default
 `openai/Qwen/Qwen3Guard-Gen-0.6B`, если guard model не переопределена через
 конфиг.
+
+Это классический паттерн "moderation sandwich": 
+1. Проверяет последний user-turn через Qwen3Guard-Gen-0.6B до вызова основной модели (input guard)
+2. Если вердикт Unsafe → блокирует, не вызывая основную модель
+3. Если прошло — вызывает основную модель (generate)
+4. Проверяет пару user+assistant через guard после генерации (output guard)
+5. Если вывод Unsafe → заменяет ответ на блокирующее сообщение

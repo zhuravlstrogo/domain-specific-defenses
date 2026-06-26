@@ -20,7 +20,6 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 - `baseline`
 - `prompt_policy`
 - `strict_prompt_policy`
-- `guardrail_style`
 - `mcq_prompt_policy`
 - `qwen3_guardrail`
 
@@ -68,5 +67,5 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
 ```
 
 Параметры:
-- `policy`: `baseline`, `prompt_policy`, `strict_prompt_policy`, `guardrail_style`, `mcq_prompt_policy`, `qwen3_guardrail`
+- `policy`: `baseline`, `prompt_policy`, `strict_prompt_policy`, `mcq_prompt_policy`, `qwen3_guardrail`
 - `phase`: `initial`, `post_context`, `both`

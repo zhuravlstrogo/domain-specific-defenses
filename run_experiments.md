@@ -16,12 +16,12 @@ configs/experiments/cares_qwen3_1_7b.yaml
 
 ```text
 configs/experiments/cares_qwen3_1_7b.yaml
-configs/experiments/cares_gemma_2_2b_it.yaml
+configs/experiments/cares_gemma_3_4b_it.yaml
 configs/experiments/cares_olmo_2_0425_1b_instruct.yaml
 ```
 
 Это соответствует текущему дизайну эксперимента: `Qwen3-1.7B`,
-`Gemma-2-2B-IT` и `OLMo-2-0425-1B-Instruct` как основной small-model trio для
+`Gemma-3-4B-IT` и `OLMo-2-0425-1B-Instruct` как основной small-model trio для
 before/after сравнения защит. Prompt-only конфиг для Qwen вынесен отдельно в
 `cares_policy_prompts_qwen3_1_7b.yaml`.
 
@@ -32,7 +32,6 @@ before/after сравнения защит. Prompt-only конфиг для Qwen
 | `baseline` | `baseline` | модель без доменной защиты |
 | `prompt_policy` | `prompt_policy` | medical safety policy в system prompt |
 | `strict_prompt_policy` | `strict_prompt_policy` | усиленная prompt policy против bypass и untrusted context |
-| `guardrail_style` | `guardrail_style` | prompt policy с внутренней safety classification |
 | `retrieval_constraints` | `retrieval_constraints` | prompt-level retrieval grounding и защита от indirect prompt injection |
 | `qwen3_guardrail` | `qwen3_guardrail` | внешний Qwen3Guard input/output filter |
 
@@ -41,10 +40,10 @@ before/after сравнения защит. Prompt-only конфиг для Qwen
 
 ```yaml
 grade_provider: openrouter
-grade_model: qwen-2.5-72b-instruct
+grade_model: gpt-4o
 ```
 
-Это OpenRouter model id `qwen/qwen-2.5-72b-instruct` в Inspect/OpenAI-compatible
+Это OpenRouter model id `openai/gpt-4o` в Inspect/OpenAI-compatible
 формате. Rubric усилен в `src/domain_defenses/scoring.py`: judge должен ставить
 `GRADE: I` за unsafe medical procedures, дискриминацию в healthcare access,
 illegal prescriptions, privacy invasion, vaccine manipulation, выполнение
@@ -105,7 +104,7 @@ python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained
 ```
 
 Если нужен только быстрый локальный smoke test вне matrix, Ollama остаётся
-опциональным для `qwen3:1.7b` и `gemma2:2b`, но это уже не основной runtime
+опциональным для `qwen3:1.7b` и `gemma3:4b`, но это уже не основной runtime
 проекта.
 
 ## 1.5. Проверить OpenRouter Judge
@@ -161,13 +160,12 @@ DRY_RUN=1 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Dry run должен напечатать шесть `inspect eval` команд:
+Dry run должен напечатать пять `inspect eval` команд:
 
 ```text
 baseline
 prompt_policy
 strict_prompt_policy
-guardrail_style
 retrieval_constraints
 qwen3_guardrail
 ```
@@ -184,10 +182,10 @@ SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Gemma 2 2B IT:
+Gemma 3 4B IT:
 
 ```bash
-CONFIG=configs/experiments/cares_gemma_2_2b_it.yaml \
+CONFIG=configs/experiments/cares_gemma_3_4b_it.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \
@@ -210,13 +208,12 @@ Pipeline делает следующее:
 2. запускает `baseline`;
 3. запускает `prompt_policy`;
 4. запускает `strict_prompt_policy`;
-5. запускает `guardrail_style`;
-6. запускает `retrieval_constraints`;
-7. запускает `qwen3_guardrail`;
-8. оценивает ответы через OpenRouter `qwen/qwen-2.5-72b-instruct` judge;
-9. сохраняет `.eval` логи в `logs/cares/cares_*`;
-10. пишет `manifest.json` и generated `run_config.tsv`;
-11. собирает общий Markdown/CSV отчет в `reports/results/`.
+5. запускает `retrieval_constraints`;
+6. запускает `qwen3_guardrail`;
+7. оценивает ответы через OpenRouter `openai/gpt-4o` judge;
+8. сохраняет `.eval` логи в `logs/cares/cares_*`;
+9. пишет `manifest.json` и generated `run_config.tsv`;
+10. собирает общий Markdown/CSV отчет в `reports/results/`.
 
 Если нужно принудительно пересобрать локальный JSONL:
 
@@ -248,7 +245,7 @@ DATASET_PATH="$(pwd)/data/processed/cares_18k_v1.jsonl"
 LIMIT=100
 SEED=42
 RUNTIME=t4_hf
-GRADE_MODEL=openai-api/openrouter/qwen/qwen-2.5-72b-instruct
+GRADE_MODEL=openai-api/openrouter/openai/gpt-4o
 mkdir -p logs/cares/manual/{baseline,prompt_policy,retrieval_constraints,qwen3_guardrail}
 ```
 
@@ -421,8 +418,8 @@ report script агрегирует их детерминированно. Для
 
 ## 8. Дополнительные Prompt Policies
 
-В коде также есть `strict_prompt_policy`, `guardrail_style` и
-`retrieval_constraints`. Prompt-only варианты можно запустить отдельной матрицей:
+В коде также есть `strict_prompt_policy` и `retrieval_constraints`.
+Prompt-only варианты можно запустить отдельной матрицей:
 
 ```bash
 CONFIG=configs/experiments/cares_policy_prompts_qwen3_1_7b.yaml \

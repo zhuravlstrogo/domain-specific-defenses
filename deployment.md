@@ -11,7 +11,7 @@
 - RAM: 16 GB
 - Disk: 60 GB
 
-Этого достаточно для `Qwen/Qwen3-1.7B`, `google/gemma-2-2b-it` и `allenai/OLMo-2-0425-1B-Instruct` как основных моделей, а также для `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. При OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
+Этого достаточно для `Qwen/Qwen3-1.7B`, `google/gemma-3-4b-it` и `allenai/OLMo-2-0425-1B-Instruct` как основных моделей, а также для `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. При OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
 
 Запрашивайте больше ресурсов, если переходите на 7B+ модели или хотите держать несколько vLLM-серверов одновременно:
 
@@ -99,7 +99,7 @@ python -m pip install --no-cache-dir --no-deps --progress-bar off --timeout 300 
 ## Установка Ollama
 
 Ollama больше не нужен для основных CARES matrix-конфигов: текущие
-`cares_qwen3_1_7b.yaml`, `cares_gemma_2_2b_it.yaml` и
+`cares_qwen3_1_7b.yaml`, `cares_gemma_3_4b_it.yaml` и
 `cares_olmo_2_0425_1b_instruct.yaml` идут через `provider: t4_hf`. Ollama
 остаётся опциональным только для локальных smoke-тестов и ручных запусков вне
 основной матрицы.
@@ -127,14 +127,14 @@ ollama serve
 
 ```bash
 ollama pull qwen3:1.7b
-ollama pull gemma2:2b
+ollama pull gemma3:4b
 ```
 
 Проверить, что модель отвечает:
 
 ```bash
 ollama run qwen3:1.7b "hello"
-ollama run gemma2:2b "hello"
+ollama run gemma3:4b "hello"
 ollama ps
 ollama list
 ```

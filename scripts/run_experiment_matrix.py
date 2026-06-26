@@ -138,12 +138,12 @@ def _run_uses_guard_model(run: dict[str, Any]) -> bool:
     )
 
 
-def _task_uses_grade_model(task: str, runs: list[dict[str, Any]]) -> bool:
+def _task_uses_judge_model(task: str, runs: list[dict[str, Any]]) -> bool:
     if task.endswith("@medical_safety"):
         return True
     return any(
-        dict(run.get("task_args", {})).get("grade_model_key")
-        or dict(run.get("task_args", {})).get("grade_model_name")
+        dict(run.get("task_args", {})).get("judge_model_key")
+        or dict(run.get("task_args", {})).get("judge_model_name")
         for run in runs
     )
 
@@ -157,8 +157,8 @@ def _default_model_label(task: str, runtime: str, runs: list[dict[str, Any]]) ->
         if guard != main:
             parts.append(f"guard_{guard}")
 
-    if _task_uses_grade_model(task, runs):
-        grade = get_runtime_model_label("grade", runtime=runtime)
+    if _task_uses_judge_model(task, runs):
+        grade = get_runtime_model_label("judge", runtime=runtime)
         if grade != main:
             parts.append(f"judge_{grade}")
 

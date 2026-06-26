@@ -42,7 +42,7 @@ def _state(
     )
 
 
-async def _no_throttle(_grade_model_name):  # noqa: ANN001
+async def _no_throttle(_judge_model_name):  # noqa: ANN001
     return None
 
 

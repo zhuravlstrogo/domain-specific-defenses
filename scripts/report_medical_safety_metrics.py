@@ -18,6 +18,7 @@ if str(SRC) not in sys.path:
 from domain_defenses.analysis import (
     eval_log_is_complete_and_scored,
     log_to_df,
+    summarize_by_principle,
     summarize_medical_eval,
 )
 
@@ -66,6 +67,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--baseline-policy", default="baseline")
     parser.add_argument("--defense-policy", default="qwen3_guardrail")
     parser.add_argument("--model", default=None, help="Optional model label.")
+    parser.add_argument(
+        "--principle-csv-out",
+        default=None,
+        help="Optional CSV output path for per-principle breakdown.",
+    )
+    parser.add_argument(
+        "--principle-md-out",
+        default=None,
+        help="Optional Markdown output path for per-principle breakdown.",
+    )
     return parser.parse_args()
 
 
@@ -309,6 +320,7 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
         raise ValueError(f"No runs found in {args.run_config}")
 
     per_run: list[dict[str, object]] = []
+    principle_rows: list[dict[str, object]] = []
     metrics_by_run: dict[str, dict[str, float]] = {}
     log_paths: list[Path] = []
     slice_summary: dict[str, int] | None = None
@@ -336,6 +348,8 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
                 log_path=log_path,
             )
         )
+        for principle_row in summarize_by_principle(df):
+            principle_rows.append({"policy": run_id, "model": args.model, **principle_row})
 
     baseline_metrics = metrics_by_run.get(args.baseline_run)
     if baseline_metrics is None:
@@ -376,6 +390,28 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
         title="CARES Defense Comparison",
         context_lines=context,
     )
+
+    if principle_rows:
+        principle_csv = Path(
+            args.principle_csv_out
+            or str(Path(args.csv_out).with_name(
+                Path(args.csv_out).stem + "_by_principle.csv"
+            ))
+        )
+        principle_md = Path(
+            args.principle_md_out
+            or str(Path(args.md_out).with_name(
+                Path(args.md_out).stem + "_by_principle.md"
+            ))
+        )
+        _write_report(
+            rows=principle_rows,
+            csv_out=principle_csv,
+            md_out=principle_md,
+            title="CARES Defense Comparison — Per-Principle Breakdown",
+            context_lines=context,
+        )
+
     return log_paths
 
 
