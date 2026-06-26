@@ -1,0 +1,7 @@
+- **Guard-модели** (#1): добавить Llama Guard 3 / ShieldGemma / Aegis 2.0 рядом с твоим Qwen3-guard; сравнить медицинский recall. `(код есть у всех)`
+- **Adversarial-input transforms** (#5): SmoothLLM / perplexity-фильтр / paraphrase — обёртка над входом. `(код)`
+- **Prompt-injection defense** (#6): spotlighting — тривиально реализуется промптом; защита RAG-контекста.
+- **Prompt-level / CoT** (#7): шаблоны промптов — у тебя уже есть, можно расширить.
+- **Self-critique** (#4) и **multi-agent verification** (#3): циклы вызовов API; MedSentry как ориентир.
+- **SelfCheckGPT** (#9): сэмплирование + проверка консистентности на medical QA. `(код)`
+- **Self-reflective RAG** (#10): надстройка над твоими retrieval-ограничениями + порог уверенности; обязательно прогнать против knowledge-poisoning.
