@@ -1,4 +1,4 @@
-experiment_id: cares_{model_label}_seed42_limit100
+experiment_id: cares_{model_label}_seed42_limit300
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:
@@ -9,7 +9,7 @@ dataset:
   prepare: auto
 
 runtime: t4_hf_olmo2_0425_1b_instruct_openrouter_judge
-limit: 100
+limit: 300
 sample_shuffle: 42
 baseline_run: baseline
 
