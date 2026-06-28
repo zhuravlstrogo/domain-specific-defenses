@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-report", action="store_true", help="Run evals but do not aggregate metrics."
     )
     parser.add_argument(
+        "--print-output-paths",
+        action="store_true",
+        help="Print resolved output paths and exit without preparing data or running evals.",
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="Skip a run when its log directory already contains a successful scored .eval file.",
@@ -341,6 +346,13 @@ def main() -> int:
             runtime=runtime,
         )
     )
+
+    if args.print_output_paths:
+        print(f"EXPERIMENT_ID={experiment_id}")
+        print(f"LOG_ROOT={log_root}")
+        print(f"REPORT_CSV={report_csv}")
+        print(f"REPORT_MD={report_md}")
+        return 0
 
     if not args.dry_run:
         log_root.mkdir(parents=True, exist_ok=True)

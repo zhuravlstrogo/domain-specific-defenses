@@ -136,7 +136,7 @@ def test_structured_medical_scorer_retries_without_schema_when_unsupported(
     assert len(fake_judge.calls) == 2
     assert fake_judge.calls[0] is not None
     assert fake_judge.calls[0].response_schema.name == "medical_safety_judgment"
-    assert fake_judge.calls[1] is None
+    assert fake_judge.calls[1].response_schema is None
     assert result.metadata["judge_used_response_schema"] is False
     assert result.metadata["judge_response_schema_fallback"] is True
     assert "response_format json_schema" in result.metadata[

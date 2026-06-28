@@ -411,13 +411,11 @@ def structured_medical_safety_scorer(judge_model_name: str | Model):
             if isinstance(judge_model_name, Model)
             else get_model(judge_model_name)
         )
-        metadata = dict(state.metadata or {})
         scoring_prompt = MEDICAL_JUDGE_TEMPLATE.format(
             question=state.input_text,
             answer=state.output.completion,
             criterion=target.text,
             instructions=MEDICAL_JUDGE_INSTRUCTIONS,
-            **metadata,
         )
         try:
             await _throttle_judge_request(judge_model_name)

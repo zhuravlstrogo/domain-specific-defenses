@@ -2,7 +2,8 @@
 
 Этот runbook описывает запуск экспериментов с нуля на удаленном GPU-сервере:
 установка окружения, скачивание CARES-18K, запуск `baseline`, `prompt_policy`,
-`retrieval_constraints` и `qwen3_guardrail`, затем сбор Markdown/CSV отчета.
+`retrieval_constraints` и `qwen3_guardrail`, затем сбор Markdown/CSV отчета с
+95% доверительными интервалами для rate-метрик.
 
 ## Что Запускаем
 
@@ -213,7 +214,8 @@ Pipeline делает следующее:
 7. оценивает ответы через OpenRouter `openai/gpt-4o` judge;
 8. сохраняет `.eval` логи в `logs/cares/cares_*`;
 9. пишет `manifest.json` и generated `run_config.tsv`;
-10. собирает общий Markdown/CSV отчет в `reports/results/`.
+10. собирает общий Markdown/CSV отчет в `reports/results/` с Wilson 95% CI для
+    бинарных долей.
 
 Если нужно принудительно пересобрать локальный JSONL:
 
@@ -316,6 +318,23 @@ python scripts/report_medical_safety_metrics.py \
   --md-out reports/results/cares_manual_safety.md
 ```
 
+Отчетный скрипт автоматически добавляет Wilson 95% confidence intervals для
+бинарных долей. Для каждой основной rate-метрики появляются дополнительные
+колонки:
+
+| Колонка | Значение |
+|---|---|
+| `<metric>_n` | denominator, по которому считалась доля |
+| `<metric>_ci_low` | нижняя граница 95% Wilson CI |
+| `<metric>_ci_high` | верхняя граница 95% Wilson CI |
+
+Пример: для `unsafe_pass_rate` в CSV/Markdown будут
+`unsafe_pass_rate_n`, `unsafe_pass_rate_ci_low`,
+`unsafe_pass_rate_ci_high`. Это тот же подход, что в
+`~/ai_safety/4_week/inspect_ai_tutorial_week_4.py`: Wilson score interval для
+биномиальной пропорции. `delta_*` считается только для самих метрик, не для
+границ CI и не для `*_n`.
+
 ## 6. Настройки Wrapper
 
 `scripts/run_cares_experiments.sh` принимает override через env vars.
@@ -409,6 +428,12 @@ logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_qwen_2_5_72b_instruct_s
 | `risky_guardrail_block_rate` | блокировки на risky/harmful cases |
 | `benign_guardrail_block_rate` | false positives guardrail на benign cases |
 | `bypass_guardrail_block_rate` | блокировки на bypass/adversarial cases |
+
+Для rate-метрик выше отчет также пишет `<metric>_n`,
+`<metric>_ci_low`, `<metric>_ci_high`. Доверительные интервалы полезны при
+`LIMIT=100`: различия в несколько процентных пунктов часто попадают внутрь
+интервала и не должны интерпретироваться как устойчивый эффект защиты без
+повтора на большем sample set или нескольких seeds.
 
 Важно: judge-based метрики зависят от configured judge model. Начиная с
 structured scorer, judge возвращает отдельные labels (`unsafe_pass`,

@@ -63,21 +63,6 @@ Interrupted: 1 error during collection
 похоже, отладочные, не отслеживаются git. Убрать из корня / переименовать /
 добавить в `.gitignore`, либо положить в `tests/` с уникальным именем.
 
-## 3. 🟠 `guardrail_style` — рассинхрон runbook и кода
-
-`run_experiments.md` (раздел 4, таблица и «Dry run должен напечатать шесть
-команд») и раздел 8 утверждают, что есть политика `guardrail_style`. Но:
-
-- в `POLICIES` (`src/domain_defenses/policies.py:90-99`) такого ключа нет;
-- ни один конфиг (`configs/experiments/*.yaml`) её не запускает — реальная
-  матрица содержит 5 runs: `baseline`, `prompt_policy`, `strict_prompt_policy`,
-  `retrieval_constraints`, `qwen3_guardrail`.
-
-Если кто-то добавит run с `policy: guardrail_style`, `get_policy_prompt` бросит
-`ValueError: Unknown policy 'guardrail_style'`. Нужно либо реализовать политику,
-либо вычистить её из runbook (и поправить «шесть команд» → пять). То же про
-упоминание `guardrail_style` в разделе 8.
-
 ## 4. 🟠 Структурные метрики занижают failures при judge errors
 
 В `summarize_medical_eval` (`analysis.py:112-135`) ветка выбирается так:

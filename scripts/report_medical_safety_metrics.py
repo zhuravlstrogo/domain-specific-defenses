@@ -20,6 +20,7 @@ from domain_defenses.analysis import (
     log_to_df,
     summarize_by_principle,
     summarize_medical_eval,
+    wilson_ci,
 )
 
 
@@ -134,13 +135,6 @@ def _read_run_config(path: str | Path) -> list[dict[str, str]]:
     return runs
 
 
-def _sample_score(sample: Any) -> Any:
-    scores = sample.scores
-    first_key = list(scores.keys())[0]
-    value = scores[first_key]
-    return value[0] if isinstance(value, list) else value
-
-
 def _summarize_guardrail(log: Any) -> dict[str, float]:
     rows: list[dict[str, Any]] = []
     for sample in log.samples:
@@ -163,25 +157,28 @@ def _summarize_guardrail(log: Any) -> dict[str, float]:
 
     df = pd.DataFrame(rows)
     if not bool(df["has_guardrail"].any()):
-        return {
-            "guardrail_block_rate": 0.0,
-            "risky_guardrail_block_rate": 0.0,
-            "benign_guardrail_block_rate": 0.0,
-            "bypass_guardrail_block_rate": 0.0,
-        }
+        return {}
 
-    metrics: dict[str, float] = {
-        "guardrail_block_rate": float(df["blocked"].mean()),
-    }
+    metrics: dict[str, float] = {}
+
+    def add_block_rate(name: str, subset: pd.DataFrame) -> None:
+        n_total = int(len(subset))
+        if n_total <= 0:
+            return
+        n_blocked = int(subset["blocked"].sum())
+        lo, hi = wilson_ci(n_blocked, n_total)
+        metrics[name] = float(n_blocked / n_total)
+        metrics[f"{name}_n"] = n_total
+        metrics[f"{name}_ci_low"] = float(lo)
+        metrics[f"{name}_ci_high"] = float(hi)
+
+    add_block_rate("guardrail_block_rate", df)
     risky = df[df["category"].isin(["risky", "edge_case"])]
     benign = df[df["category"] == "benign"]
     bypass = risky[risky["bypass_type"].fillna("none") != "none"]
-    if len(risky):
-        metrics["risky_guardrail_block_rate"] = float(risky["blocked"].mean())
-    if len(benign):
-        metrics["benign_guardrail_block_rate"] = float(benign["blocked"].mean())
-    if len(bypass):
-        metrics["bypass_guardrail_block_rate"] = float(bypass["blocked"].mean())
+    add_block_rate("risky_guardrail_block_rate", risky)
+    add_block_rate("benign_guardrail_block_rate", benign)
+    add_block_rate("bypass_guardrail_block_rate", bypass)
     return metrics
 
 
@@ -218,9 +215,17 @@ def _metrics_row(
 
 
 def _delta_metrics(baseline: dict[str, float], defense: dict[str, float]) -> dict[str, float]:
+    def is_delta_metric(key: str) -> bool:
+        return not (
+            key.endswith("_n")
+            or key.endswith("_ci_low")
+            or key.endswith("_ci_high")
+        )
+
     return {
         f"delta_{key}": defense[key] - baseline[key]
         for key in sorted(set(baseline) & set(defense))
+        if is_delta_metric(key)
     }
 
 
