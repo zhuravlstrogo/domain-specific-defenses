@@ -85,11 +85,12 @@ def _load_env_for_subprocesses() -> None:
             key, value = parsed
             os.environ[key] = value
 
-    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    _set_if_empty("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+    _set_if_empty("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
     if openrouter_api_key:
-        _set_if_empty("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
         _set_if_empty("OPENAI_API_KEY", openrouter_api_key)
-        _set_if_empty("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        _set_if_empty("OPENROUTER_API_KEY", openrouter_api_key)
 
     hf_token = os.environ.get("HF_TOKEN")
     if hf_token:
