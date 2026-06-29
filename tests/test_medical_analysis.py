@@ -8,6 +8,7 @@ import pandas as pd
 from domain_defenses.analysis import (
     eval_log_has_scored_samples,
     eval_log_is_complete_and_scored,
+    eval_log_sort_key,
     summarize_by_principle,
     summarize_medical_eval,
     wilson_ci,
@@ -19,6 +20,13 @@ def test_wilson_ci_matches_expected_midpoint_case() -> None:
 
     assert lo == pytest.approx(0.0945, abs=0.001)
     assert hi == pytest.approx(0.9055, abs=0.001)
+
+
+def test_eval_log_sort_key_uses_filename_timestamp() -> None:
+    older = "2026-06-29T05-13-47-00-00_medical-safety_old.eval"
+    newer = "2026-06-29T05-21-54-00-00_medical-safety_new.eval"
+
+    assert eval_log_sort_key(newer) > eval_log_sort_key(older)
 
 
 def test_medical_rate_metrics_include_wilson_ci() -> None:

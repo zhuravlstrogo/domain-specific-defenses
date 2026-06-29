@@ -1,10 +1,26 @@
 from __future__ import annotations
 
 import math
+import re
 from statistics import NormalDist
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+
+_EVAL_LOG_TIMESTAMP_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(?:[-+]\d{2}-\d{2})?)_"
+)
+
+
+def eval_log_sort_key(path: str | Path) -> tuple[int, str, str]:
+    """Return a stable key for Inspect .eval logs independent of filesystem mtime."""
+    path = Path(path)
+    match = _EVAL_LOG_TIMESTAMP_RE.match(path.name)
+    if match:
+        return (1, match.group(1), path.name)
+    return (0, path.name, path.name)
 
 
 def _first_score(sample: Any) -> Any:

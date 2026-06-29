@@ -20,6 +20,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from domain_defenses.analysis import eval_log_is_complete_and_scored
+from domain_defenses.analysis import eval_log_sort_key
 from domain_defenses.config import get_runtime_model_label
 from domain_defenses.guardrails import is_guardrail_policy
 
@@ -51,6 +52,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, help="Override eval sample limit.")
     parser.add_argument("--sample-shuffle", type=int, help="Override Inspect sample shuffle.")
     parser.add_argument("--runtime", help="Override runtime profile.")
+    parser.add_argument(
+        "--experiment-suffix",
+        help="Append a filesystem-safe suffix to experiment_id to keep repeated runs separate.",
+    )
     parser.add_argument("--judge-model-key", help="Override judge model alias for every run.")
     parser.add_argument("--judge-model-name", help="Override explicit judge model name for every run.")
     parser.add_argument("--model-label", help="Override model label used in reports.")
@@ -134,6 +139,14 @@ def _format_template(value: str, **context: str) -> str:
         raise ValueError(
             f"Unknown template variable '{exc.args[0]}' in {value!r}. Valid: {valid}"
         ) from exc
+
+
+def _sanitize_suffix(value: str) -> str:
+    suffix = "".join(char if char.isalnum() or char in "._-" else "_" for char in value)
+    suffix = suffix.strip("._-")
+    if not suffix:
+        raise ValueError("--experiment-suffix must contain at least one alphanumeric character")
+    return suffix
 
 
 def _run_uses_guard_model(run: dict[str, Any]) -> bool:
@@ -223,7 +236,7 @@ def _has_complete_eval_log(log_dir: Path) -> bool:
         return False
     for path in sorted(
         log_dir.glob("*.eval"),
-        key=lambda p: p.stat().st_mtime,
+        key=eval_log_sort_key,
         reverse=True,
     ):
         try:
@@ -367,6 +380,9 @@ def main() -> int:
         model_label=str(model_label),
         runtime=runtime,
     )
+    experiment_suffix = args.experiment_suffix or cfg.get("experiment_suffix")
+    if experiment_suffix:
+        experiment_id = f"{experiment_id}_{_sanitize_suffix(str(experiment_suffix))}"
     limit = args.limit if args.limit is not None else int(cfg.get("limit", 100))
     sample_shuffle = (
         args.sample_shuffle
@@ -479,6 +495,7 @@ def main() -> int:
 
     manifest = {
         "experiment_id": experiment_id,
+        "experiment_suffix": experiment_suffix,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "config_path": str(config_path),
         "config": cfg,

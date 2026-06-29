@@ -17,6 +17,7 @@ if str(SRC) not in sys.path:
 
 from domain_defenses.analysis import (
     eval_log_is_complete_and_scored,
+    eval_log_sort_key,
     log_to_df,
     summarize_by_principle,
     summarize_medical_eval,
@@ -82,7 +83,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _latest_eval(log_dir: str) -> Path:
-    files = sorted(Path(log_dir).glob("*.eval"), key=lambda p: p.stat().st_mtime)
+    files = sorted(Path(log_dir).glob("*.eval"), key=eval_log_sort_key)
     if not files:
         raise FileNotFoundError(f"No .eval files found in {log_dir}")
 

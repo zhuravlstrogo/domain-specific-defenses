@@ -46,6 +46,9 @@ matrix_args_for_config() {
     if [[ -n "${RUNTIME:-}" ]]; then
         MATRIX_ARGS+=(--runtime "$RUNTIME")
     fi
+    if [[ -n "${EXPERIMENT_SUFFIX:-}" ]]; then
+        MATRIX_ARGS+=(--experiment-suffix "$EXPERIMENT_SUFFIX")
+    fi
     if [[ -n "$judge_model_key" ]]; then
         MATRIX_ARGS+=(--judge-model-key "$judge_model_key")
     fi
