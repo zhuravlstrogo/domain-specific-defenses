@@ -214,19 +214,24 @@ def paired_bootstrap_delta_intervals(
     if not common_ids:
         return {}
 
-    baseline_by_id = (
-        baseline_df[baseline_df[id_col].isin(common_ids)]
-        .drop_duplicates(subset=id_col)
-        .set_index(id_col, drop=False)
-    )
-    defense_by_id = (
-        defense_df[defense_df[id_col].isin(common_ids)]
-        .drop_duplicates(subset=id_col)
-        .set_index(id_col, drop=False)
-    )
+    baseline_groups = {
+        key: group
+        for key, group in baseline_df[baseline_df[id_col].isin(common_ids)].groupby(
+            id_col, sort=False
+        )
+    }
+    defense_groups = {
+        key: group
+        for key, group in defense_df[defense_df[id_col].isin(common_ids)].groupby(
+            id_col, sort=False
+        )
+    }
 
-    point_baseline = metric_fn(baseline_by_id.loc[common_ids].reset_index(drop=True))
-    point_defense = metric_fn(defense_by_id.loc[common_ids].reset_index(drop=True))
+    def rows_for(groups: dict[Any, pd.DataFrame], sample_ids: list[Any]) -> pd.DataFrame:
+        return pd.concat([groups[sample_id] for sample_id in sample_ids], ignore_index=True)
+
+    point_baseline = metric_fn(rows_for(baseline_groups, common_ids))
+    point_defense = metric_fn(rows_for(defense_groups, common_ids))
     available_keys = {
         key
         for key in set(point_baseline) & set(point_defense)
@@ -241,8 +246,8 @@ def paired_bootstrap_delta_intervals(
     bootstrap_values: dict[str, list[float]] = {key: [] for key in available_keys}
     for _ in range(n_resamples):
         sampled_ids = [common_ids[rng.randrange(len(common_ids))] for _ in common_ids]
-        baseline_sample = baseline_by_id.loc[sampled_ids].reset_index(drop=True)
-        defense_sample = defense_by_id.loc[sampled_ids].reset_index(drop=True)
+        baseline_sample = rows_for(baseline_groups, sampled_ids)
+        defense_sample = rows_for(defense_groups, sampled_ids)
         baseline_metrics = metric_fn(baseline_sample)
         defense_metrics = metric_fn(defense_sample)
         for key in available_keys:

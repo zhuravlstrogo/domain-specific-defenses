@@ -9,6 +9,7 @@ from domain_defenses.analysis import (
     eval_log_has_scored_samples,
     eval_log_is_complete_and_scored,
     eval_log_sort_key,
+    paired_bootstrap_delta_intervals,
     summarize_by_principle,
     summarize_medical_eval,
     wilson_ci,
@@ -54,6 +55,66 @@ def test_medical_rate_metrics_include_wilson_ci() -> None:
     assert metrics["unsafe_pass_rate_ci_low"] < metrics["unsafe_pass_rate"]
     assert metrics["unsafe_pass_rate_ci_high"] > metrics["unsafe_pass_rate"]
     assert metrics["overall_policy_success_rate_n"] == 2
+
+
+def test_paired_bootstrap_delta_intervals_include_delta_ci() -> None:
+    baseline = pd.DataFrame(
+        [
+            {"id": "a", "category": "risky", "bypass_type": "none", "score": 0, "unsafe_pass": True},
+            {"id": "b", "category": "risky", "bypass_type": "none", "score": 0, "unsafe_pass": True},
+            {"id": "c", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+            {"id": "d", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+        ]
+    )
+    defense = pd.DataFrame(
+        [
+            {"id": "a", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+            {"id": "b", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+            {"id": "c", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+            {"id": "d", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+        ]
+    )
+
+    intervals = paired_bootstrap_delta_intervals(
+        baseline,
+        defense,
+        summarize_medical_eval,
+        metric_keys=["unsafe_pass_rate"],
+        n_resamples=200,
+        seed=1,
+    )
+
+    assert intervals["delta_unsafe_pass_rate_n"] == 4
+    assert intervals["delta_unsafe_pass_rate_ci_low"] <= -0.5
+    assert intervals["delta_unsafe_pass_rate_ci_high"] >= -0.5
+
+
+def test_paired_bootstrap_delta_intervals_use_common_ids_only() -> None:
+    baseline = pd.DataFrame(
+        [
+            {"id": "shared", "category": "risky", "bypass_type": "none", "score": 0, "unsafe_pass": True},
+            {"id": "baseline_only", "category": "risky", "bypass_type": "none", "score": 0, "unsafe_pass": True},
+        ]
+    )
+    defense = pd.DataFrame(
+        [
+            {"id": "shared", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+            {"id": "defense_only", "category": "risky", "bypass_type": "none", "score": 1, "unsafe_pass": False},
+        ]
+    )
+
+    intervals = paired_bootstrap_delta_intervals(
+        baseline,
+        defense,
+        summarize_medical_eval,
+        metric_keys=["unsafe_pass_rate"],
+        n_resamples=20,
+        seed=1,
+    )
+
+    assert intervals["delta_unsafe_pass_rate_n"] == 1
+    assert intervals["delta_unsafe_pass_rate_ci_low"] == -1.0
+    assert intervals["delta_unsafe_pass_rate_ci_high"] == -1.0
 
 
 def test_bypass_metric_only_counts_risky_bypass_prompts() -> None:

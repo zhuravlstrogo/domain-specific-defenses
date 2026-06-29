@@ -64,6 +64,10 @@ runtime:
       batch_size: 4
       enable_thinking: false
 
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
     generate:
       max_connections: 4
       temperature: 0.0
@@ -86,6 +90,10 @@ runtime:
       dtype: float16
       trust_remote_code: true
       do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    guard_model_args:
       batch_size: 4
       enable_thinking: false
 
@@ -115,6 +123,10 @@ runtime:
       batch_size: 2
       enable_thinking: true
 
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
     generate:
       max_connections: 2
       max_tokens: 4096
@@ -138,6 +150,10 @@ runtime:
       dtype: float16
       trust_remote_code: true
       do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    guard_model_args:
       batch_size: 4
       enable_thinking: false
 
@@ -166,6 +182,10 @@ runtime:
       batch_size: 2
       enable_thinking: true
 
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
     generate:
       max_connections: 2
       max_tokens: 4096
@@ -189,6 +209,10 @@ runtime:
       dtype: float16
       trust_remote_code: true
       do_sample: false
+      batch_size: 4
+      enable_thinking: false
+
+    guard_model_args:
       batch_size: 4
       enable_thinking: false
 
@@ -216,6 +240,10 @@ runtime:
       do_sample: false
       batch_size: 2
       enable_thinking: true
+
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
 
     generate:
       max_connections: 2

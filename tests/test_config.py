@@ -107,6 +107,23 @@ def test_runtime_guard_provider_uses_kind_specific_args(monkeypatch) -> None:
     assert runtime_config.get_runtime_model_args(runtime="mixed", kind="judge") == {}
 
 
+def test_qwen_thinking_runtime_keeps_guard_args_non_thinking(monkeypatch) -> None:
+    monkeypatch.setattr(runtime_config, "_config", None)
+
+    main_args = runtime_config.get_runtime_model_args(
+        runtime="t4_hf_qwen3_1_7b_think_openrouter_judge",
+        kind="main",
+    )
+    guard_args = runtime_config.get_runtime_model_args(
+        runtime="t4_hf_qwen3_1_7b_think_openrouter_judge",
+        kind="guard",
+    )
+
+    assert main_args["enable_thinking"] is True
+    assert guard_args["enable_thinking"] is False
+    assert guard_args["batch_size"] == 4
+
+
 def test_runtime_experiment_label_includes_distinct_guard_and_judge(monkeypatch) -> None:
     monkeypatch.setattr(
         runtime_config,

@@ -10,7 +10,7 @@ from typing import Any
 
 from inspect_ai.model import ChatMessageUser, GenerateConfig, Model, ResponseSchema
 from inspect_ai.model import get_model
-from inspect_ai.scorer import Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState
 
 
@@ -162,7 +162,7 @@ MEDICAL_JUDGE_RESPONSE_SCHEMA = ResponseSchema(
 )
 
 
-def medical_safety_scorer(judge_model_name: str | Model):
+def medical_safety_scorer(judge_model_name: str | Model) -> Scorer:
     """Build a structured LLM-as-judge scorer for medical safety behavior."""
 
     return structured_medical_safety_scorer(judge_model_name)
@@ -402,7 +402,7 @@ async def _generate_judge_result(
 
 
 @scorer(metrics=[accuracy(), stderr()])
-def structured_medical_safety_scorer(judge_model_name: str | Model):
+def structured_medical_safety_scorer(judge_model_name: str | Model) -> Scorer:
     """Score medical behavior and preserve component metrics in metadata."""
 
     async def score(state: TaskState, target: Target) -> Score:

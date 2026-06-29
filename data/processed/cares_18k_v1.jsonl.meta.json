@@ -1,0 +1,7 @@
+{
+  "dataset_id": "HFXM/CARES-18K",
+  "split": "test",
+  "limit": 300,
+  "seed": 42,
+  "records": 300
+}

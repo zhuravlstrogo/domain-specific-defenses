@@ -22,6 +22,7 @@ if str(SRC) not in sys.path:
 from domain_defenses.analysis import eval_log_is_complete_and_scored
 from domain_defenses.analysis import eval_log_sort_key
 from domain_defenses.config import get_runtime_model_label
+from domain_defenses.config import get_runtime_model_name
 from domain_defenses.guardrails import is_guardrail_policy
 
 
@@ -66,6 +67,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--log-root", help="Override output.log_root.")
     parser.add_argument("--report-csv", help="Override output.report_csv.")
     parser.add_argument("--report-md", help="Override output.report_md.")
+    parser.add_argument(
+        "--score-from-log-root",
+        help="Reuse generated responses from this log root and run only scoring.",
+    )
     return parser.parse_args()
 
 
@@ -90,6 +95,69 @@ def _sha256(path: Path) -> str | None:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _dataset_metadata_path(path: Path) -> Path:
+    return path.with_suffix(path.suffix + ".meta.json")
+
+
+def _line_count(path: Path) -> int | None:
+    if not path.exists():
+        return None
+    with path.open("r", encoding="utf-8") as f:
+        return sum(1 for line in f if line.strip())
+
+
+def _expected_dataset_metadata(dataset_cfg: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "dataset_id": dataset_cfg.get("dataset_id", "HFXM/CARES-18K"),
+        "split": dataset_cfg.get("split", "test"),
+        "limit": dataset_cfg.get("size", 300),
+        "seed": dataset_cfg.get("seed", 42),
+    }
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _dataset_validation_errors(dataset_cfg: dict[str, Any], dataset_path: Path) -> list[str]:
+    expected = _expected_dataset_metadata(dataset_cfg)
+    errors: list[str] = []
+    if not dataset_path.exists():
+        return [f"dataset file missing: {dataset_path}"]
+
+    line_count = _line_count(dataset_path)
+    if line_count != expected["limit"]:
+        errors.append(f"line count {line_count} != expected {expected['limit']}")
+
+    metadata_path = _dataset_metadata_path(dataset_path)
+    metadata = _read_json(metadata_path)
+    if metadata is None:
+        errors.append(f"metadata sidecar missing or invalid: {metadata_path}")
+        return errors
+
+    for key, expected_value in expected.items():
+        if metadata.get(key) != expected_value:
+            errors.append(
+                f"metadata {key}={metadata.get(key)!r} != expected {expected_value!r}"
+            )
+    if metadata.get("records") != expected["limit"]:
+        errors.append(
+            f"metadata records={metadata.get('records')!r} != expected {expected['limit']!r}"
+        )
+    return errors
+
+
+def _dataset_matches_request(dataset_cfg: dict[str, Any], dataset_path: Path) -> bool:
+    return not _dataset_validation_errors(dataset_cfg, dataset_path)
 
 
 def _git(args: list[str]) -> str | None:
@@ -231,7 +299,19 @@ def _run(command: list[str], *, dry_run: bool) -> None:
     subprocess.run(command, cwd=REPO_ROOT, check=True)
 
 
-def _has_complete_eval_log(log_dir: Path) -> bool:
+def _log_uses_judge(log: Any, judge_model_name: str | None) -> bool:
+    if judge_model_name is None:
+        return True
+    expected = str(judge_model_name)
+    candidates: list[Any] = []
+    if log.eval.scorers:
+        candidates.extend(scorer.options for scorer in log.eval.scorers)
+    if log.results and log.results.scores:
+        candidates.extend(score.params for score in log.results.scores)
+    return any(expected in json.dumps(candidate, sort_keys=True) for candidate in candidates)
+
+
+def _has_complete_eval_log(log_dir: Path, *, judge_model_name: str | None = None) -> bool:
     if not log_dir.exists():
         return False
     for path in sorted(
@@ -243,9 +323,32 @@ def _has_complete_eval_log(log_dir: Path) -> bool:
             log = read_eval_log(str(path))
         except Exception:
             continue
-        if eval_log_is_complete_and_scored(log):
+        if eval_log_is_complete_and_scored(log) and _log_uses_judge(log, judge_model_name):
             return True
     return False
+
+
+def _latest_complete_eval(log_dir: Path) -> Path:
+    if not log_dir.exists():
+        raise FileNotFoundError(f"Log directory not found: {log_dir}")
+    rejected: list[str] = []
+    for path in sorted(
+        log_dir.glob("*.eval"),
+        key=eval_log_sort_key,
+        reverse=True,
+    ):
+        try:
+            log = read_eval_log(str(path))
+        except Exception as exc:
+            rejected.append(f"{path.name}: unreadable ({exc})")
+            continue
+        if eval_log_is_complete_and_scored(log):
+            return path
+        status = getattr(log, "status", None)
+        sample_count = len(getattr(log, "samples", None) or [])
+        rejected.append(f"{path.name}: status={status!r}, samples={sample_count}")
+    detail = "; ".join(rejected)
+    raise ValueError(f"No successful scored .eval files found in {log_dir}: {detail}")
 
 
 def _prepare_dataset(
@@ -260,12 +363,14 @@ def _prepare_dataset(
         raise ValueError("dataset.prepare must be one of: auto, always, never")
     if prepare == "never":
         return None
-    if prepare == "auto" and dataset_path.exists():
+    if prepare == "auto" and _dataset_matches_request(dataset_cfg, dataset_path):
         return None
 
     command = [
         sys.executable,
         "scripts/prepare_cares_dataset.py",
+        "--dataset-id",
+        str(dataset_cfg.get("dataset_id", "HFXM/CARES-18K")),
         "--split",
         str(dataset_cfg.get("split", "test")),
         "--limit",
@@ -333,6 +438,27 @@ def _build_eval_command(
     ]
 
 
+def _build_score_command(
+    *,
+    source_log: Path,
+    output_file: Path,
+    judge_model_name: str,
+) -> list[str]:
+    return [
+        "inspect",
+        "score",
+        str(source_log),
+        "--scorer",
+        "src/domain_defenses/scoring.py@structured_medical_safety_scorer",
+        "-S",
+        f"judge_model_name={judge_model_name}",
+        "--action",
+        "overwrite",
+        "--output-file",
+        str(output_file),
+    ]
+
+
 def main() -> int:
     args = parse_args()
     config_path = _repo_path(args.config)
@@ -392,6 +518,7 @@ def main() -> int:
     baseline_run = str(cfg.get("baseline_run", "baseline"))
 
     dataset_path = _repo_path(dataset_cfg.get("path", "data/processed/cares_18k_v1.jsonl"))
+    score_from_log_root = _repo_path(args.score_from_log_root) if args.score_from_log_root else None
     log_root = _repo_path(
         _format_template(
             args.log_root or output_cfg.get("log_root", "logs/experiments/{experiment_id}"),
@@ -433,6 +560,8 @@ def main() -> int:
     print(f"Config: {config_path}")
     print(f"Dataset: {dataset_path}")
     print(f"Log root: {log_root}")
+    if score_from_log_root is not None:
+        print(f"Score from log root: {score_from_log_root}")
     print(f"Report: {report_md}")
     print()
 
@@ -444,35 +573,66 @@ def main() -> int:
     )
     if not args.dry_run and not dataset_path.exists():
         raise FileNotFoundError(f"Dataset not found: {dataset_path}")
+    if not args.dry_run:
+        validation_errors = _dataset_validation_errors(dataset_cfg, dataset_path)
+        if validation_errors:
+            detail = "; ".join(validation_errors)
+            raise ValueError(f"Dataset does not match experiment config: {detail}")
 
     generated_run_config = log_root / "run_config.tsv"
     if not args.dry_run:
         _write_generated_run_config(runs, generated_run_config)
 
     eval_commands: list[list[str]] = []
+    score_commands: list[list[str]] = []
     skipped_runs: list[str] = []
+    resolved_judge_model_name = get_runtime_model_name(
+        "judge",
+        runtime=runtime,
+        model_key=judge_model_key,
+        model_name=judge_model_name,
+    )
     for run in runs:
         run_id = str(run["id"])
         task_args = dict(run.get("task_args", {}))
         log_dir = log_root / run_id
         if not args.dry_run:
             log_dir.mkdir(parents=True, exist_ok=True)
-        command = _build_eval_command(
-            task=task,
-            runtime=runtime,
-            dataset_path=dataset_path,
-            limit=limit,
-            sample_shuffle=sample_shuffle,
-            log_dir=log_dir,
-            task_args=task_args,
-        )
-        eval_commands.append(command)
         print(f"==> {run_id}: {run.get('description', run_id)}")
-        if args.resume and _has_complete_eval_log(log_dir):
+        if args.resume and _has_complete_eval_log(
+            log_dir,
+            judge_model_name=resolved_judge_model_name,
+        ):
             skipped_runs.append(run_id)
-            print(f"skip existing complete .eval in {log_dir}")
+            print(f"skip existing complete .eval for judge in {log_dir}")
             print()
             continue
+
+        if score_from_log_root is None:
+            command = _build_eval_command(
+                task=task,
+                runtime=runtime,
+                dataset_path=dataset_path,
+                limit=limit,
+                sample_shuffle=sample_shuffle,
+                log_dir=log_dir,
+                task_args=task_args,
+            )
+            eval_commands.append(command)
+        else:
+            source_dir = score_from_log_root / run_id
+            if args.dry_run and not source_dir.exists():
+                source_log = source_dir / "<latest-successful.eval>"
+                output_file = log_dir / f"{run_id}_rescored.eval"
+            else:
+                source_log = _latest_complete_eval(source_dir)
+                output_file = log_dir / source_log.name
+            command = _build_score_command(
+                source_log=source_log,
+                output_file=output_file,
+                judge_model_name=resolved_judge_model_name,
+            )
+            score_commands.append(command)
         _run(command, dry_run=args.dry_run)
         print()
 
@@ -502,7 +662,10 @@ def main() -> int:
         "git": _git_state(),
         "dataset": {
             "path": str(dataset_path),
+            "metadata_path": str(_dataset_metadata_path(dataset_path)),
             "sha256": _sha256(dataset_path),
+            "line_count": _line_count(dataset_path),
+            "expected": _expected_dataset_metadata(dataset_cfg),
             "prepare_command": prepare_command,
         },
         "runtime": runtime,
@@ -514,6 +677,8 @@ def main() -> int:
         "baseline_run": baseline_run,
         "generated_run_config": str(generated_run_config),
         "eval_commands": eval_commands,
+        "score_from_log_root": str(score_from_log_root) if score_from_log_root else None,
+        "score_commands": score_commands,
         "skipped_runs": skipped_runs,
         "report_command": report_command,
     }

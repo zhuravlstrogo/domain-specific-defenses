@@ -14,6 +14,7 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from domain_defenses.analysis import paired_bootstrap_delta_intervals
 from domain_defenses.mcq_analysis import (
     compare_policy_metrics,
     defense_viability_diagnostics,
@@ -39,6 +40,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default=None, help="Optional model label in report")
     parser.add_argument("--baseline-policy", default="baseline")
     parser.add_argument("--defense-policy", default="mcq_prompt_policy")
+    parser.add_argument(
+        "--delta-ci-samples",
+        type=int,
+        default=1000,
+        help="Paired bootstrap resamples for policy delta confidence intervals.",
+    )
+    parser.add_argument(
+        "--delta-ci-seed",
+        type=int,
+        default=0,
+        help="Random seed for paired bootstrap delta confidence intervals.",
+    )
     return parser.parse_args()
 
 
@@ -46,6 +59,17 @@ def _metrics_row(policy: str, metrics: dict[str, float], model: str | None) -> d
     row: dict[str, object] = {"policy": policy, "model": model}
     row.update(metrics)
     return row
+
+
+def _delta_metric_keys(deltas: dict[str, float]) -> list[str]:
+    return [
+        key.removeprefix("delta_")
+        for key in deltas
+        if key.startswith("delta_")
+        and not key.endswith("_n")
+        and not key.endswith("_ci_low")
+        and not key.endswith("_ci_high")
+    ]
 
 
 def _print_viability_report(viability: dict) -> None:
@@ -89,6 +113,16 @@ def main() -> int:
     baseline_metrics = summarize_mcq_eval(baseline_df)
     defense_metrics = summarize_mcq_eval(defense_df)
     deltas = compare_policy_metrics(baseline_metrics, defense_metrics)
+    deltas.update(
+        paired_bootstrap_delta_intervals(
+            baseline_df,
+            defense_df,
+            summarize_mcq_eval,
+            metric_keys=_delta_metric_keys(deltas),
+            n_resamples=args.delta_ci_samples,
+            seed=args.delta_ci_seed,
+        )
+    )
 
     viability = defense_viability_diagnostics(baseline_df)
     _print_viability_report(viability)

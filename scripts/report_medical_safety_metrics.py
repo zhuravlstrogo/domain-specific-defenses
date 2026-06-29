@@ -171,7 +171,7 @@ def _guardrail_df(log: Any) -> pd.DataFrame:
 
 
 def _summarize_guardrail_df(df: pd.DataFrame) -> dict[str, float]:
-    if not rows:
+    if df.empty:
         return {}
     if not bool(df["has_guardrail"].any()):
         return {}
@@ -362,11 +362,31 @@ def _run_pair_mode(args: argparse.Namespace) -> tuple[Path, Path]:
         **summarize_medical_eval(baseline_df),
         **_summarize_guardrail(baseline_log),
     }
+    baseline_guardrail_df = _guardrail_df(baseline_log)
     defense_metrics = {
         **summarize_medical_eval(defense_df),
         **_summarize_guardrail(defense_log),
     }
+    defense_guardrail_df = _guardrail_df(defense_log)
     deltas = _delta_metrics(baseline_metrics, defense_metrics)
+    deltas.update(
+        _paired_delta_intervals(
+            baseline_df,
+            defense_df,
+            deltas,
+            n_resamples=args.delta_ci_samples,
+            seed=args.delta_ci_seed,
+        )
+    )
+    deltas.update(
+        _paired_guardrail_delta_intervals(
+            baseline_guardrail_df,
+            defense_guardrail_df,
+            deltas,
+            n_resamples=args.delta_ci_samples,
+            seed=args.delta_ci_seed,
+        )
+    )
 
     rows = [
         _metrics_row(args.baseline_policy, baseline_metrics, args.model),
@@ -398,6 +418,8 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
     per_run: list[dict[str, object]] = []
     principle_rows: list[dict[str, object]] = []
     metrics_by_run: dict[str, dict[str, float]] = {}
+    dfs_by_run: dict[str, pd.DataFrame] = {}
+    guardrail_dfs_by_run: dict[str, pd.DataFrame] = {}
     log_paths: list[Path] = []
     slice_summary: dict[str, int] | None = None
 
@@ -407,12 +429,15 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
         log_paths.append(log_path)
         log = read_eval_log(str(log_path))
         df = log_to_df(log)
+        guardrail_df = _guardrail_df(log)
         _require_scored_samples(df, log_path)
         metrics = {
             **summarize_medical_eval(df),
             **_summarize_guardrail(log),
         }
         metrics_by_run[run_id] = metrics
+        dfs_by_run[run_id] = df
+        guardrail_dfs_by_run[run_id] = guardrail_df
         if slice_summary is None:
             slice_summary = _slices_summary(log)
         per_run.append(
@@ -434,6 +459,24 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
     for row in per_run:
         run_id = str(row["policy"])
         deltas = _delta_metrics(baseline_metrics, metrics_by_run[run_id])
+        deltas.update(
+            _paired_delta_intervals(
+                dfs_by_run[args.baseline_run],
+                dfs_by_run[run_id],
+                deltas,
+                n_resamples=args.delta_ci_samples,
+                seed=args.delta_ci_seed,
+            )
+        )
+        deltas.update(
+            _paired_guardrail_delta_intervals(
+                guardrail_dfs_by_run[args.baseline_run],
+                guardrail_dfs_by_run[run_id],
+                deltas,
+                n_resamples=args.delta_ci_samples,
+                seed=args.delta_ci_seed,
+            )
+        )
         row.update(deltas)
 
     context = [

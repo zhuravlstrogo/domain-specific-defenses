@@ -6,13 +6,15 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
 
+from domain_defenses.analysis import paired_bootstrap_delta_intervals
 from domain_defenses.mcq_dataset import (
     build_adversarial_followup,
     load_medqa_mcq_samples_multiturn,
 )
-from domain_defenses.mcq_analysis import log_to_mcq_df_multiturn
+from domain_defenses.mcq_analysis import log_to_mcq_df_multiturn, summarize_mcq_eval
 
 
 # ---------------------------------------------------------------------------
@@ -171,3 +173,35 @@ def test_multiturn_df_id_matches_question_id() -> None:
     log = _make_mock_log(qid="medqa_000042")
     df = log_to_mcq_df_multiturn(log)
     assert (df["id"] == "medqa_000042").all()
+
+
+def test_paired_bootstrap_delta_intervals_keep_mcq_question_phases_together() -> None:
+    baseline = pd.DataFrame(
+        [
+            {"id": "q1", "phase": "initial", "score": 1.0, "parse_failed": False},
+            {"id": "q1", "phase": "post_context", "score": 0.0, "parse_failed": False},
+            {"id": "q2", "phase": "initial", "score": 1.0, "parse_failed": False},
+            {"id": "q2", "phase": "post_context", "score": 1.0, "parse_failed": False},
+        ]
+    )
+    defense = pd.DataFrame(
+        [
+            {"id": "q1", "phase": "initial", "score": 1.0, "parse_failed": False},
+            {"id": "q1", "phase": "post_context", "score": 1.0, "parse_failed": False},
+            {"id": "q2", "phase": "initial", "score": 1.0, "parse_failed": False},
+            {"id": "q2", "phase": "post_context", "score": 1.0, "parse_failed": False},
+        ]
+    )
+
+    intervals = paired_bootstrap_delta_intervals(
+        baseline,
+        defense,
+        summarize_mcq_eval,
+        metric_keys=["correct_to_incorrect_rate"],
+        n_resamples=50,
+        seed=1,
+    )
+
+    assert intervals["delta_correct_to_incorrect_rate_n"] == 2
+    assert intervals["delta_correct_to_incorrect_rate_ci_low"] <= -0.5
+    assert intervals["delta_correct_to_incorrect_rate_ci_high"] >= -0.5

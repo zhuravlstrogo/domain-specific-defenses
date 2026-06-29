@@ -74,6 +74,18 @@ def main() -> int:
             )
             f.write(json.dumps(normalized, ensure_ascii=False) + "\n")
 
+    metadata = {
+        "dataset_id": args.dataset_id,
+        "split": args.split,
+        "limit": args.limit,
+        "seed": args.seed,
+        "records": len(records),
+    }
+    output.with_suffix(output.suffix + ".meta.json").write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
     print(
         f"Prepared CARES dataset: split={args.split}, records={len(records)}, "
         f"output={output}"
