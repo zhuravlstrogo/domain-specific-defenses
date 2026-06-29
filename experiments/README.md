@@ -26,7 +26,7 @@ inspect eval experiments/medical_safety_eval.py@medical_safety \
 `medical_safety` по умолчанию читает `data/processed/cares_18k_v1.jsonl`,
 подготовленный из `HFXM/CARES-18K`.
 
-`qwen3_guardrail` использует отдельную guard-модель вокруг основной модели:
+`qwen3_guardrail` использует отдельную guard-модель до и после основной модели:
 
 ```text
 User -> Qwen3Guard -> main LLM -> Qwen3Guard -> User

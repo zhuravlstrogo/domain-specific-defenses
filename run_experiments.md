@@ -59,6 +59,17 @@ content policy.
 ушла в Responses-style reasoning endpoint и вернула `Reasoning is mandatory for
 this endpoint`.
 
+Дополнительный judge для cross-check: `claude-sonnet-4.5`, OpenRouter model id
+`anthropic/claude-sonnet-4.5`. Wrapper `scripts/run_cares_experiments.sh` по
+умолчанию запускает два последовательных judge-прогона: `gpt-4o`, затем
+`claude-sonnet-4.5`. Если нужен только Claude:
+
+```bash
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
+JUDGE_MODEL_KEY=claude-sonnet-4.5 \
+bash scripts/run_cares_experiments.sh
+```
+
 `qwen3_guardrail` запускается в строгом режиме:
 
 ```yaml
@@ -211,7 +222,9 @@ Pipeline делает следующее:
 4. запускает `strict_prompt_policy`;
 5. запускает `retrieval_constraints`;
 6. запускает `qwen3_guardrail`;
-7. оценивает ответы через OpenRouter `openai/gpt-4o` judge;
+7. оценивает ответы через OpenRouter judge: по умолчанию `openai/gpt-4o`,
+   либо override через `JUDGE_MODEL_KEY`, например
+   `anthropic/claude-sonnet-4.5`;
 8. сохраняет `.eval` логи в `logs/cares/cares_*`;
 9. пишет `manifest.json` и generated `run_config.tsv`;
 10. собирает общий Markdown/CSV отчет в `reports/results/` с Wilson 95% CI для
@@ -349,7 +362,10 @@ python scripts/report_medical_safety_metrics.py \
 | `DATASET_SIZE` | config value | сколько CARES examples подготовить локально |
 | `DATASET_SEED` | config value | seed для подготовки subset |
 | `RUNTIME` | config value | runtime profile из `configs/config.yaml` |
-| `MODEL_LABEL` | config value | label модели в отчете |
+| `JUDGE_MODEL_KEYS` | `gpt-4o claude-sonnet-4.5` | whitespace-separated список judge aliases для последовательного запуска |
+| `JUDGE_MODEL_KEY` | unset | single-judge override alias из `configs/config.yaml`, например `claude-sonnet-4.5` |
+| `JUDGE_MODEL_NAME` | unset | explicit Inspect/OpenRouter model string, например `openai-api/openrouter/anthropic/claude-sonnet-4.5` |
+| `MODEL_LABEL` | config value | label модели в отчете; нельзя задавать при multi-judge |
 | `LOG_ROOT` | config value | куда писать `.eval` логи |
 | `REPORT_MD` | config value | markdown отчет |
 | `REPORT_CSV` | config value | csv отчет |
@@ -367,14 +383,24 @@ OpenRouter-compatible `OPENAI_API_KEY`/`OPENAI_BASE_URL` для judge model.
 по умолчанию ограничивает ответ judge до `1024` токенов, чтобы OpenRouter не
 считал стоимость запроса по слишком большому provider default.
 
-Пример с фиксированным именем артефактов:
+Пример с фиксированным именем артефактов для single-judge запуска:
 
 ```bash
 CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
+JUDGE_MODEL_KEY=gpt-4o \
 LOG_ROOT=logs/cares/baseline_prompt_guardrail_latest \
 REPORT_MD=reports/results/baseline_prompt_guardrail_latest.md \
 REPORT_CSV=reports/results/baseline_prompt_guardrail_latest.csv \
 bash scripts/run_cares_experiments.sh
+```
+
+В multi-judge режиме не задавай `MODEL_LABEL`, `LOG_ROOT`, `REPORT_MD` или
+`REPORT_CSV`: wrapper остановится с ошибкой, чтобы не смешать результаты разных
+judge. По умолчанию имена артефактов будут вида:
+
+```text
+reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gpt_4o_seed42_limit300.md
+reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_claude_sonnet_4_5_seed42_limit300.md
 ```
 
 Если OpenRouter продолжает возвращать provider-side bad request/routing errors,

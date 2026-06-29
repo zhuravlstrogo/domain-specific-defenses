@@ -51,6 +51,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, help="Override eval sample limit.")
     parser.add_argument("--sample-shuffle", type=int, help="Override Inspect sample shuffle.")
     parser.add_argument("--runtime", help="Override runtime profile.")
+    parser.add_argument("--judge-model-key", help="Override judge model alias for every run.")
+    parser.add_argument("--judge-model-name", help="Override explicit judge model name for every run.")
     parser.add_argument("--model-label", help="Override model label used in reports.")
     parser.add_argument("--dataset-path", help="Override dataset.path.")
     parser.add_argument("--dataset-split", help="Override dataset.split.")
@@ -153,7 +155,14 @@ def _task_uses_judge_model(task: str, runs: list[dict[str, Any]]) -> bool:
     )
 
 
-def _default_model_label(task: str, runtime: str, runs: list[dict[str, Any]]) -> str:
+def _default_model_label(
+    task: str,
+    runtime: str,
+    runs: list[dict[str, Any]],
+    *,
+    judge_model_key: str | None = None,
+    judge_model_name: str | None = None,
+) -> str:
     main = get_runtime_model_label("main", runtime=runtime)
     parts = [main]
 
@@ -163,11 +172,43 @@ def _default_model_label(task: str, runtime: str, runs: list[dict[str, Any]]) ->
             parts.append(f"guard_{guard}")
 
     if _task_uses_judge_model(task, runs):
-        grade = get_runtime_model_label("judge", runtime=runtime)
+        grade = get_runtime_model_label(
+            "judge",
+            runtime=runtime,
+            model_key=judge_model_key,
+            model_name=judge_model_name,
+        )
         if grade != main:
             parts.append(f"judge_{grade}")
 
     return "_".join(parts)
+
+
+def _apply_global_judge_override(
+    runs: list[dict[str, Any]],
+    *,
+    judge_model_key: str | None,
+    judge_model_name: str | None,
+) -> list[dict[str, Any]]:
+    if judge_model_key and judge_model_name:
+        raise ValueError("Use only one of judge_model_key or judge_model_name.")
+    if not judge_model_key and not judge_model_name:
+        return runs
+
+    resolved_runs: list[dict[str, Any]] = []
+    for run in runs:
+        resolved_run = dict(run)
+        task_args = dict(resolved_run.get("task_args", {}))
+        if task_args.get("judge_model_key") or task_args.get("judge_model_name"):
+            resolved_runs.append(resolved_run)
+            continue
+        if judge_model_key:
+            task_args["judge_model_key"] = judge_model_key
+        if judge_model_name:
+            task_args["judge_model_name"] = judge_model_name
+        resolved_run["task_args"] = task_args
+        resolved_runs.append(resolved_run)
+    return resolved_runs
 
 
 def _run(command: list[str], *, dry_run: bool) -> None:
@@ -302,10 +343,23 @@ def main() -> int:
         raise ValueError("Config must define at least one run.")
 
     runtime = args.runtime or str(cfg.get("runtime", "t4_hf"))
+    judge_model_key = args.judge_model_key or cfg.get("judge_model_key")
+    judge_model_name = args.judge_model_name or cfg.get("judge_model_name")
+    runs = _apply_global_judge_override(
+        runs,
+        judge_model_key=judge_model_key,
+        judge_model_name=judge_model_name,
+    )
     model_label = (
         args.model_label
         or cfg.get("model_label")
-        or _default_model_label(task, runtime, runs)
+        or _default_model_label(
+            task,
+            runtime,
+            runs,
+            judge_model_key=judge_model_key,
+            judge_model_name=judge_model_name,
+        )
     )
     raw_experiment_id = str(cfg["experiment_id"])
     experiment_id = _format_template(
@@ -435,6 +489,8 @@ def main() -> int:
             "prepare_command": prepare_command,
         },
         "runtime": runtime,
+        "judge_model_key": judge_model_key,
+        "judge_model_name": judge_model_name,
         "model_label": model_label,
         "limit": limit,
         "sample_shuffle": sample_shuffle,

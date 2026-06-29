@@ -68,6 +68,10 @@ CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
+По умолчанию wrapper запускает два последовательных judge-прогона:
+`gpt-4o`, затем `claude-sonnet-4.5`. Артефакты разделяются по model label,
+например `...judge_gpt_4o...` и `...judge_claude_sonnet_4_5...`.
+
 Та же схема для других моделей:
 
 ```bash
@@ -78,11 +82,20 @@ CONFIG=configs/experiments/cares_olmo_2_0425_1b_instruct.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
+Та же матрица только с Claude Sonnet 4.5 как judge через OpenRouter:
+
+```bash
+CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
+JUDGE_MODEL_KEY=claude-sonnet-4.5 \
+bash scripts/run_cares_experiments.sh
+```
+
 Эквивалентный явный запуск:
 
 ```bash
 python scripts/run_experiment_matrix.py \
-  configs/experiments/cares_qwen3_1_7b.yaml
+  configs/experiments/cares_qwen3_1_7b.yaml \
+  --judge-model-key claude-sonnet-4.5
 ```
 
 Runner делает весь pipeline:

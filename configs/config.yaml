@@ -37,6 +37,7 @@ provider:
     base_url: https://openrouter.ai/api/v1
     env_key: OPENROUTER_API_KEY
     models:
+      claude-sonnet-4.5: openai-api/openrouter/anthropic/claude-sonnet-4.5
       gpt-4o: openai-api/openrouter/openai/gpt-4o
       qwen3-1.7b: openai-api/openrouter/qwen/qwen3-1.7b
       qwen-2.5-72b-instruct: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
@@ -90,6 +91,7 @@ runtime:
 
     generate:
       max_connections: 4
+      max_tokens: 512
       temperature: 0.0
       top_p: 1.0
       seed: 42

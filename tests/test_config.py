@@ -3,6 +3,14 @@ from __future__ import annotations
 from domain_defenses import config as runtime_config
 
 
+def test_openrouter_provider_defines_claude_sonnet_4_5(monkeypatch) -> None:
+    monkeypatch.setattr(runtime_config, "_config", None)
+
+    assert runtime_config.get_provider_models("openrouter")["claude-sonnet-4.5"] == (
+        "openai-api/openrouter/anthropic/claude-sonnet-4.5"
+    )
+
+
 def test_runtime_kind_specific_provider_uses_own_model_mapping(monkeypatch) -> None:
     monkeypatch.setattr(
         runtime_config,
