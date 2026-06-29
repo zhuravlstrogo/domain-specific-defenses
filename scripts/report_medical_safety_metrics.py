@@ -19,6 +19,7 @@ from domain_defenses.analysis import (
     eval_log_is_complete_and_scored,
     eval_log_sort_key,
     log_to_df,
+    paired_bootstrap_delta_intervals,
     summarize_by_principle,
     summarize_medical_eval,
     wilson_ci,
@@ -79,6 +80,18 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional Markdown output path for per-principle breakdown.",
     )
+    parser.add_argument(
+        "--delta-ci-samples",
+        type=int,
+        default=1000,
+        help="Paired bootstrap resamples for policy delta confidence intervals.",
+    )
+    parser.add_argument(
+        "--delta-ci-seed",
+        type=int,
+        default=0,
+        help="Random seed for paired bootstrap delta confidence intervals.",
+    )
     return parser.parse_args()
 
 
@@ -136,7 +149,7 @@ def _read_run_config(path: str | Path) -> list[dict[str, str]]:
     return runs
 
 
-def _summarize_guardrail(log: Any) -> dict[str, float]:
+def _guardrail_df(log: Any) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for sample in log.samples:
         metadata = sample.metadata or {}
@@ -147,16 +160,19 @@ def _summarize_guardrail(log: Any) -> dict[str, float]:
         )
         rows.append(
             {
+                "id": metadata.get("id", sample.id),
                 "category": metadata.get("category"),
                 "bypass_type": metadata.get("bypass_type", "none"),
                 "blocked": bool(metadata.get("guardrail_blocked", False)),
                 "has_guardrail": has_guardrail,
             }
         )
+    return pd.DataFrame(rows)
+
+
+def _summarize_guardrail_df(df: pd.DataFrame) -> dict[str, float]:
     if not rows:
         return {}
-
-    df = pd.DataFrame(rows)
     if not bool(df["has_guardrail"].any()):
         return {}
 
@@ -181,6 +197,13 @@ def _summarize_guardrail(log: Any) -> dict[str, float]:
     add_block_rate("benign_guardrail_block_rate", benign)
     add_block_rate("bypass_guardrail_block_rate", bypass)
     return metrics
+
+
+def _summarize_guardrail(log: Any) -> dict[str, float]:
+    df = _guardrail_df(log)
+    if df.empty:
+        return {}
+    return _summarize_guardrail_df(df)
 
 
 def _slices_summary(log: Any) -> dict[str, int]:
@@ -228,6 +251,53 @@ def _delta_metrics(baseline: dict[str, float], defense: dict[str, float]) -> dic
         for key in sorted(set(baseline) & set(defense))
         if is_delta_metric(key)
     }
+
+
+def _delta_metric_keys(deltas: dict[str, float]) -> list[str]:
+    return [
+        key.removeprefix("delta_")
+        for key in deltas
+        if key.startswith("delta_")
+        and not key.endswith("_n")
+        and not key.endswith("_ci_low")
+        and not key.endswith("_ci_high")
+    ]
+
+
+def _paired_delta_intervals(
+    baseline_df: pd.DataFrame,
+    defense_df: pd.DataFrame,
+    deltas: dict[str, float],
+    *,
+    n_resamples: int,
+    seed: int,
+) -> dict[str, float]:
+    return paired_bootstrap_delta_intervals(
+        baseline_df,
+        defense_df,
+        summarize_medical_eval,
+        metric_keys=_delta_metric_keys(deltas),
+        n_resamples=n_resamples,
+        seed=seed,
+    )
+
+
+def _paired_guardrail_delta_intervals(
+    baseline_df: pd.DataFrame,
+    defense_df: pd.DataFrame,
+    deltas: dict[str, float],
+    *,
+    n_resamples: int,
+    seed: int,
+) -> dict[str, float]:
+    return paired_bootstrap_delta_intervals(
+        baseline_df,
+        defense_df,
+        _summarize_guardrail_df,
+        metric_keys=_delta_metric_keys(deltas),
+        n_resamples=n_resamples,
+        seed=seed,
+    )
 
 
 def _to_markdown_table(df: pd.DataFrame) -> str:

@@ -4,7 +4,8 @@ import math
 import re
 from statistics import NormalDist
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Iterable
+import random
 
 import pandas as pd
 
@@ -154,6 +155,110 @@ def _add_rate_with_ci(
     metrics[f"{name}_ci_high"] = float(hi)
     for alias in aliases:
         metrics[alias] = float(rate)
+
+
+def _percentile(values: list[float], quantile: float) -> float:
+    if not values:
+        raise ValueError("values must not be empty")
+    if not 0 <= quantile <= 1:
+        raise ValueError("quantile must be between 0 and 1")
+
+    sorted_values = sorted(values)
+    if len(sorted_values) == 1:
+        return float(sorted_values[0])
+
+    position = (len(sorted_values) - 1) * quantile
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return float(sorted_values[lower])
+
+    weight = position - lower
+    return float(sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight)
+
+
+def _is_delta_metric(key: str) -> bool:
+    return not (
+        key.endswith("_n")
+        or key.endswith("_ci_low")
+        or key.endswith("_ci_high")
+    )
+
+
+def paired_bootstrap_delta_intervals(
+    baseline_df: pd.DataFrame,
+    defense_df: pd.DataFrame,
+    metric_fn: Callable[[pd.DataFrame], dict[str, float]],
+    *,
+    metric_keys: Iterable[str] | None = None,
+    id_col: str = "id",
+    n_resamples: int = 1000,
+    confidence_level: float = 0.95,
+    seed: int = 0,
+) -> dict[str, float]:
+    """Compute paired bootstrap confidence intervals for defense-baseline deltas.
+
+    Rows are paired by ``id_col`` and resampled as prompt pairs, which matches the
+    usual experiment design where policies are evaluated on the same prompt set.
+    """
+    if n_resamples <= 0:
+        return {}
+    if id_col not in baseline_df.columns or id_col not in defense_df.columns:
+        return {}
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must be between 0 and 1")
+
+    baseline_ids = set(baseline_df[id_col].dropna())
+    defense_ids = set(defense_df[id_col].dropna())
+    common_ids = sorted(baseline_ids & defense_ids)
+    if not common_ids:
+        return {}
+
+    baseline_by_id = (
+        baseline_df[baseline_df[id_col].isin(common_ids)]
+        .drop_duplicates(subset=id_col)
+        .set_index(id_col, drop=False)
+    )
+    defense_by_id = (
+        defense_df[defense_df[id_col].isin(common_ids)]
+        .drop_duplicates(subset=id_col)
+        .set_index(id_col, drop=False)
+    )
+
+    point_baseline = metric_fn(baseline_by_id.loc[common_ids].reset_index(drop=True))
+    point_defense = metric_fn(defense_by_id.loc[common_ids].reset_index(drop=True))
+    available_keys = {
+        key
+        for key in set(point_baseline) & set(point_defense)
+        if _is_delta_metric(key)
+    }
+    if metric_keys is not None:
+        available_keys &= set(metric_keys)
+    if not available_keys:
+        return {}
+
+    rng = random.Random(seed)
+    bootstrap_values: dict[str, list[float]] = {key: [] for key in available_keys}
+    for _ in range(n_resamples):
+        sampled_ids = [common_ids[rng.randrange(len(common_ids))] for _ in common_ids]
+        baseline_sample = baseline_by_id.loc[sampled_ids].reset_index(drop=True)
+        defense_sample = defense_by_id.loc[sampled_ids].reset_index(drop=True)
+        baseline_metrics = metric_fn(baseline_sample)
+        defense_metrics = metric_fn(defense_sample)
+        for key in available_keys:
+            if key in baseline_metrics and key in defense_metrics:
+                bootstrap_values[key].append(defense_metrics[key] - baseline_metrics[key])
+
+    alpha = 1 - confidence_level
+    out: dict[str, float] = {}
+    for key in sorted(available_keys):
+        values = [value for value in bootstrap_values[key] if math.isfinite(value)]
+        if not values:
+            continue
+        out[f"delta_{key}_n"] = float(len(common_ids))
+        out[f"delta_{key}_ci_low"] = _percentile(values, alpha / 2)
+        out[f"delta_{key}_ci_high"] = _percentile(values, 1 - alpha / 2)
+    return out
 
 
 def summarize_medical_eval(df: pd.DataFrame) -> dict[str, float]:
