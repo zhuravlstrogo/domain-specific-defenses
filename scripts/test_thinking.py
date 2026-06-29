@@ -6,6 +6,8 @@ See test_thinking.md for experiment design and interpretation guide.
 from __future__ import annotations
 
 import argparse
+import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +43,58 @@ CONDITIONS = [
         "runtime": "t4_hf_qwen3_1_7b_think_openrouter_judge",
     },
 ]
+
+
+def _env_value_from_line(line: str) -> tuple[str, str] | None:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        return None
+    if stripped.startswith("export "):
+        stripped = stripped.removeprefix("export ").strip()
+    key, sep, raw_value = stripped.partition("=")
+    if not sep:
+        return None
+
+    key = key.strip()
+    if not key or not (key[0].isalpha() or key[0] == "_"):
+        return None
+    if any(not (char.isalnum() or char == "_") for char in key):
+        return None
+
+    try:
+        parts = shlex.split(raw_value, comments=True, posix=True)
+    except ValueError:
+        value = raw_value.strip().strip("'\"")
+    else:
+        value = parts[0] if parts else ""
+    return key, value
+
+
+def _set_if_empty(name: str, value: str) -> None:
+    if not os.environ.get(name):
+        os.environ[name] = value
+
+
+def _load_env_for_subprocesses() -> None:
+    env_path = REPO_ROOT / ".env"
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            parsed = _env_value_from_line(line)
+            if parsed is None:
+                continue
+            key, value = parsed
+            os.environ[key] = value
+
+    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+    if openrouter_api_key:
+        _set_if_empty("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+        _set_if_empty("OPENAI_API_KEY", openrouter_api_key)
+        _set_if_empty("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        _set_if_empty("HUGGING_FACE_HUB_TOKEN", hf_token)
+        _set_if_empty("HUGGINGFACE_HUB_TOKEN", hf_token)
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,6 +159,7 @@ def _write_run_config(path: Path) -> None:
 
 def main() -> int:
     args = parse_args()
+    _load_env_for_subprocesses()
 
     _prepare_dataset(dry_run=args.dry_run)
 
