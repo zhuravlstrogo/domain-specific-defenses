@@ -103,7 +103,7 @@ runtime:
     judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    judge_model: qwen-2.5-72b-instruct
+    judge_model: gpt-4o
 
     model_args:
       device: cuda:0
