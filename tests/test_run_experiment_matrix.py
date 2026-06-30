@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def _load_module():
@@ -83,3 +84,33 @@ def test_prepare_dataset_command_passes_offset(tmp_path, monkeypatch) -> None:
     assert command[command.index("--limit") + 1] == "2700"
     assert "--offset" in command
     assert command[command.index("--offset") + 1] == "300"
+
+
+def test_resume_rejects_complete_logs_with_judge_failures() -> None:
+    runner = _load_module()
+    log = SimpleNamespace(
+        samples=[
+            SimpleNamespace(
+                scores={
+                    "structured_medical_safety_scorer": SimpleNamespace(
+                        metadata={
+                            "judge_error": False,
+                            "judge_parse_failed": False,
+                        }
+                    )
+                }
+            ),
+            SimpleNamespace(
+                scores={
+                    "structured_medical_safety_scorer": SimpleNamespace(
+                        metadata={
+                            "judge_error": True,
+                            "judge_parse_failed": True,
+                        }
+                    )
+                }
+            ),
+        ]
+    )
+
+    assert runner._log_has_healthy_judge_scores(log) is False

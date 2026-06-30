@@ -313,6 +313,16 @@ def _log_uses_judge(log: Any, judge_model_name: str | None) -> bool:
     return any(expected in json.dumps(candidate, sort_keys=True) for candidate in candidates)
 
 
+def _log_has_healthy_judge_scores(log: Any) -> bool:
+    samples = getattr(log, "samples", None) or []
+    for sample in samples:
+        for score in (getattr(sample, "scores", None) or {}).values():
+            metadata = getattr(score, "metadata", None) or {}
+            if metadata.get("judge_error") or metadata.get("judge_parse_failed"):
+                return False
+    return True
+
+
 def _has_complete_eval_log(log_dir: Path, *, judge_model_name: str | None = None) -> bool:
     if not log_dir.exists():
         return False
@@ -325,7 +335,11 @@ def _has_complete_eval_log(log_dir: Path, *, judge_model_name: str | None = None
             log = read_eval_log(str(path))
         except Exception:
             continue
-        if eval_log_is_complete_and_scored(log) and _log_uses_judge(log, judge_model_name):
+        if (
+            eval_log_is_complete_and_scored(log)
+            and _log_uses_judge(log, judge_model_name)
+            and _log_has_healthy_judge_scores(log)
+        ):
             return True
     return False
 
