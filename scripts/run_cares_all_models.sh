@@ -23,9 +23,11 @@ if [[ -n "${HF_TOKEN:-}" ]]; then
 fi
 
 SEED="${SEED:-42}"
+LIMIT="${LIMIT:-300}"
 FORCE="${FORCE:-0}"
 RESUME="${RESUME:-1}"
 DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gpt-4o claude-sonnet-4.5}"
+SKIP_VALIDATE="${SKIP_VALIDATE:-0}"
 
 if [[ -n "${JUDGE_MODEL_NAME:-}" && -n "${JUDGE_MODEL_KEY:-}" ]]; then
     echo "Use only one of JUDGE_MODEL_NAME or JUDGE_MODEL_KEY." >&2
@@ -146,9 +148,7 @@ matrix_args_for_case() {
     if [[ -n "$experiment_suffix" ]]; then
         MATRIX_ARGS+=(--experiment-suffix "$experiment_suffix")
     fi
-    if [[ -n "${LIMIT:-}" ]]; then
-        MATRIX_ARGS+=(--limit "$LIMIT")
-    fi
+    MATRIX_ARGS+=(--limit "$LIMIT")
     if [[ -n "${DATASET_SIZE:-}" ]]; then
         MATRIX_ARGS+=(--dataset-size "$DATASET_SIZE")
     fi
@@ -260,6 +260,108 @@ run_judge_agreement() {
     fi
 }
 
+validate_case_outputs() {
+    local model_id="$1"
+    local thinking_mode="$2"
+    local experiment_suffix="$3"
+    local expected_limit="$LIMIT"
+
+    if [[ "${DRY_RUN:-}" == "1" || "$SKIP_VALIDATE" == "1" ]]; then
+        return
+    fi
+
+    python - "$expected_limit" "$model_id" "$thinking_mode" "$experiment_suffix" "${#judge_model_keys[@]}" "${report_csvs[@]}" <<'PY'
+from __future__ import annotations
+
+import csv
+import math
+import sys
+from pathlib import Path
+
+
+expected_limit = int(sys.argv[1])
+model_id = sys.argv[2]
+thinking_mode = sys.argv[3]
+experiment_suffix = sys.argv[4]
+judge_count = int(sys.argv[5])
+report_csvs = [Path(value) for value in sys.argv[6:]]
+expected_policies = [
+    "baseline",
+    "prompt_policy",
+    "strict_prompt_policy",
+    "retrieval_constraints",
+    "qwen3_guardrail",
+]
+
+
+def fail(message: str) -> None:
+    raise SystemExit(
+        f"Validation failed for {model_id} mode={thinking_mode}: {message}"
+    )
+
+
+for report_csv in report_csvs:
+    if not report_csv.exists():
+        fail(f"missing report CSV: {report_csv}")
+    with report_csv.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        fields = reader.fieldnames or []
+
+    policies = [row.get("policy", "") for row in rows]
+    if policies != expected_policies:
+        fail(f"{report_csv} policies={policies!r}, expected={expected_policies!r}")
+
+    for row in rows:
+        value = row.get("overall_policy_success_rate_n", "")
+        try:
+            n = int(float(value))
+        except ValueError as exc:
+            fail(f"{report_csv} has invalid overall_policy_success_rate_n={value!r}") from exc
+        if n != expected_limit:
+            fail(f"{report_csv} has n={n}, expected {expected_limit}")
+
+    ci_cols = [name for name in fields if name.endswith("_ci_low") or name.endswith("_ci_high")]
+    if not ci_cols:
+        fail(f"{report_csv} has no confidence interval columns")
+    if not any(row.get(col, "") not in ("", "nan", "NaN") for row in rows for col in ci_cols):
+        fail(f"{report_csv} has confidence interval columns but they are empty")
+
+    if "judge_error_rate" in fields:
+        bad_rows = []
+        for row in rows:
+            raw = row.get("judge_error_rate", "")
+            if raw in ("", "nan", "NaN"):
+                continue
+            value = float(raw)
+            if not math.isfinite(value) or value >= 1.0:
+                bad_rows.append(f"{row.get('policy')}={raw}")
+        if bad_rows:
+            fail(f"{report_csv} has unusable judge_error_rate values: {', '.join(bad_rows)}")
+
+if judge_count == 2:
+    suffix_part = f"_{experiment_suffix}" if experiment_suffix else ""
+    agreement_csv = Path("reports/results") / f"cares_{model_id}_judge_agreement{suffix_part}.csv"
+    if not agreement_csv.exists():
+        fail(f"missing judge agreement CSV: {agreement_csv}")
+    with agreement_csv.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    policies = [row.get("policy", "") for row in rows]
+    if policies != expected_policies:
+        fail(f"{agreement_csv} policies={policies!r}, expected={expected_policies!r}")
+    for row in rows:
+        value = row.get("n_common", "")
+        try:
+            n_common = int(float(value))
+        except ValueError as exc:
+            fail(f"{agreement_csv} has invalid n_common={value!r}") from exc
+        if n_common != expected_limit:
+            fail(f"{agreement_csv} has n_common={n_common}, expected {expected_limit}")
+
+print(f"Validated {model_id} mode={thinking_mode}: {len(report_csvs)} report(s), limit={expected_limit}")
+PY
+}
+
 run_case() {
     local config="$1"
     local model_id="$2"
@@ -283,6 +385,7 @@ run_case() {
         "${MATRIX_ARGS[@]}"
     done
     run_judge_agreement "$model_id" "$thinking_mode" "$experiment_suffix"
+    validate_case_outputs "$model_id" "$thinking_mode" "$experiment_suffix"
 }
 
 configs=(
