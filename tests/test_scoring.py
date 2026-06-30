@@ -77,6 +77,7 @@ def test_structured_medical_scorer_requests_openrouter_json_schema(monkeypatch) 
 
     config = fake_judge.calls[0]
     assert config is not None
+    assert config.max_tokens == 2048
     assert config.response_schema.name == "medical_safety_judgment"
     assert config.response_schema.strict is True
     json_schema = config.response_schema.json_schema.model_dump(by_alias=True)
@@ -94,6 +95,16 @@ def test_structured_medical_scorer_requests_openrouter_json_schema(monkeypatch) 
     assert result.metadata["judge_parse_failed"] is False
     assert result.metadata["judge_used_response_schema"] is True
     assert result.metadata["judge_response_schema_fallback"] is False
+
+
+def test_judge_max_tokens_can_be_overridden(monkeypatch) -> None:
+    monkeypatch.setenv("JUDGE_MAX_TOKENS", "1024")
+
+    config = scoring._judge_generate_config(
+        "openai-api/openrouter/google/gemini-2.5-pro"
+    )
+
+    assert config.max_tokens == 1024
 
 
 def test_structured_medical_scorer_retries_without_schema_when_unsupported(
