@@ -317,7 +317,7 @@ for report_csv in report_csvs:
         try:
             n = int(float(value))
         except ValueError as exc:
-            fail(f"{report_csv} has invalid overall_policy_success_rate_n={value!r}") from exc
+            fail(f"{report_csv} has invalid overall_policy_success_rate_n={value!r}: {exc}")
         if n != expected_limit:
             fail(f"{report_csv} has n={n}, expected {expected_limit}")
 
@@ -354,7 +354,7 @@ if judge_count == 2:
         try:
             n_common = int(float(value))
         except ValueError as exc:
-            fail(f"{agreement_csv} has invalid n_common={value!r}") from exc
+            fail(f"{agreement_csv} has invalid n_common={value!r}: {exc}")
         if n_common != expected_limit:
             fail(f"{agreement_csv} has n_common={n_common}, expected {expected_limit}")
 
