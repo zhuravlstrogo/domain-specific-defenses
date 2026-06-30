@@ -1,0 +1,221 @@
+{
+  "experiment_id": "cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5",
+  "experiment_suffix": "no_think_smoke_limit5",
+  "created_at": "2026-06-30T07:45:17.481584+00:00",
+  "config_path": "/home/ubuntu/domain-specific-defenses/configs/experiments/cares_qwen3_1_7b.yaml",
+  "config": {
+    "experiment_id": "cares_{model_label}_seed42_limit300",
+    "task": "experiments/medical_safety_eval.py@medical_safety",
+    "dataset": {
+      "path": "data/processed/cares_18k_v1.jsonl",
+      "split": "test",
+      "size": 300,
+      "seed": 42,
+      "prepare": "auto"
+    },
+    "runtime": "t4_hf_qwen3_1_7b_openrouter_judge",
+    "limit": 300,
+    "sample_shuffle": 42,
+    "baseline_run": "baseline",
+    "runs": [
+      {
+        "id": "baseline",
+        "description": "No defense / neutral assistant",
+        "task_args": {
+          "policy": "baseline"
+        }
+      },
+      {
+        "id": "prompt_policy",
+        "description": "Medical domain prompt policy",
+        "task_args": {
+          "policy": "prompt_policy"
+        }
+      },
+      {
+        "id": "strict_prompt_policy",
+        "description": "Strict medical prompt policy with bypass and untrusted-context rules",
+        "task_args": {
+          "policy": "strict_prompt_policy"
+        }
+      },
+      {
+        "id": "retrieval_constraints",
+        "description": "Prompt policy with retrieval grounding and indirect-injection constraints",
+        "task_args": {
+          "policy": "retrieval_constraints"
+        }
+      },
+      {
+        "id": "qwen3_guardrail",
+        "description": "Qwen3Guard input/output filter, blocks Unsafe and Controversial",
+        "task_args": {
+          "policy": "qwen3_guardrail",
+          "block_controversial": true
+        }
+      }
+    ],
+    "output": {
+      "log_root": "logs/cares/{experiment_id}",
+      "report_csv": "reports/results/{experiment_id}.csv",
+      "report_md": "reports/results/{experiment_id}.md"
+    }
+  },
+  "git": {
+    "commit": "e7c1176270c042a81778c408f2301da91c7da836",
+    "dirty": true,
+    "status_short": "M data/processed/cares_18k_v1.jsonl\n M data/processed/cares_18k_v1.jsonl.meta.json\n?? logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/"
+  },
+  "dataset": {
+    "path": "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+    "metadata_path": "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl.meta.json",
+    "sha256": "5c2d569c723bf200eb619bb2860a2ddcd6968148dc1092ef296ea4834eed0bb5",
+    "line_count": 5,
+    "expected": {
+      "dataset_id": "HFXM/CARES-18K",
+      "split": "test",
+      "limit": 5,
+      "seed": 42
+    },
+    "prepare_command": [
+      "/home/ubuntu/domain-specific-defenses/.venv/bin/python",
+      "scripts/prepare_cares_dataset.py",
+      "--dataset-id",
+      "HFXM/CARES-18K",
+      "--split",
+      "test",
+      "--limit",
+      "5",
+      "--seed",
+      "42",
+      "--output",
+      "/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl"
+    ]
+  },
+  "runtime": "t4_hf_qwen3_1_7b_openrouter_judge",
+  "judge_model_key": "gemini-2.5-pro",
+  "judge_model_name": null,
+  "model_label": "qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro",
+  "limit": 5,
+  "sample_shuffle": 42,
+  "baseline_run": "baseline",
+  "generated_run_config": "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/run_config.tsv",
+  "eval_commands": [
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf_qwen3_1_7b_openrouter_judge",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "5",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/baseline",
+      "-T",
+      "policy=baseline",
+      "-T",
+      "judge_model_key=gemini-2.5-pro"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf_qwen3_1_7b_openrouter_judge",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "5",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/prompt_policy",
+      "-T",
+      "policy=prompt_policy",
+      "-T",
+      "judge_model_key=gemini-2.5-pro"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf_qwen3_1_7b_openrouter_judge",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "5",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/strict_prompt_policy",
+      "-T",
+      "policy=strict_prompt_policy",
+      "-T",
+      "judge_model_key=gemini-2.5-pro"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf_qwen3_1_7b_openrouter_judge",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "5",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/retrieval_constraints",
+      "-T",
+      "policy=retrieval_constraints",
+      "-T",
+      "judge_model_key=gemini-2.5-pro"
+    ],
+    [
+      "inspect",
+      "eval",
+      "experiments/medical_safety_eval.py@medical_safety",
+      "-T",
+      "runtime=t4_hf_qwen3_1_7b_openrouter_judge",
+      "-T",
+      "dataset_path=/home/ubuntu/domain-specific-defenses/data/processed/cares_18k_v1.jsonl",
+      "--limit",
+      "5",
+      "--sample-shuffle",
+      "42",
+      "--log-dir",
+      "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/qwen3_guardrail",
+      "-T",
+      "policy=qwen3_guardrail",
+      "-T",
+      "block_controversial=true",
+      "-T",
+      "judge_model_key=gemini-2.5-pro"
+    ]
+  ],
+  "score_from_log_root": null,
+  "score_commands": [],
+  "skipped_runs": [],
+  "report_command": [
+    "/home/ubuntu/domain-specific-defenses/.venv/bin/python",
+    "scripts/report_medical_safety_metrics.py",
+    "--log-root",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5",
+    "--run-config",
+    "/home/ubuntu/domain-specific-defenses/logs/cares/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5/run_config.tsv",
+    "--baseline-run",
+    "baseline",
+    "--model",
+    "qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro",
+    "--csv-out",
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5.csv",
+    "--md-out",
+    "/home/ubuntu/domain-specific-defenses/reports/results/cares_qwen3_1_7b_guard_qwen3_guard_0_6b_judge_gemini_2_5_pro_seed42_limit300_no_think_smoke_limit5.md"
+  ]
+}
