@@ -1,3 +1,0 @@
-# run_id|description|task_args
-baseline_no_think|Baseline — thinking disabled (no_think)|-T policy=baseline
-baseline_think|Baseline — thinking enabled (full CoT)|-T policy=baseline
