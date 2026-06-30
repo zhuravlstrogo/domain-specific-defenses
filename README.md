@@ -106,6 +106,17 @@ Runner делает весь pipeline:
 4. пишет `manifest.json` и generated `run_config.tsv`;
 5. собирает общий Markdown/CSV report относительно `baseline_run`.
 
+Чтобы добрать следующий непересекающийся chunk после первых 300 примеров,
+используйте тот же seed, но задайте offset и отдельные output paths:
+
+```bash
+LIMIT=2700 \
+DATASET_OFFSET=300 \
+DATASET_PATH=data/processed/cares_18k_v1_offset300_limit2700.jsonl \
+EXPERIMENT_SUFFIX=offset300_limit2700 \
+bash scripts/run_cares_all_models.sh
+```
+
 ## Experiment Config
 
 Source of truth для сравнения защит - YAML в `configs/experiments/`.

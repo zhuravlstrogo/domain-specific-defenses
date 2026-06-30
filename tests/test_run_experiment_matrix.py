@@ -31,3 +31,55 @@ def test_build_score_command_uses_inspect_score_with_overwrite_action() -> None:
     assert "overwrite" in command
     assert "--output-file" in command
     assert "logs/target/baseline/run.eval" in command
+
+
+def test_dataset_metadata_includes_offset() -> None:
+    runner = _load_module()
+
+    metadata = runner._expected_dataset_metadata(
+        {
+            "dataset_id": "dataset",
+            "split": "test",
+            "size": 2700,
+            "offset": 300,
+            "seed": 42,
+        }
+    )
+
+    assert metadata == {
+        "dataset_id": "dataset",
+        "split": "test",
+        "limit": 2700,
+        "offset": 300,
+        "seed": 42,
+    }
+
+
+def test_prepare_dataset_command_passes_offset(tmp_path, monkeypatch) -> None:
+    runner = _load_module()
+    calls: list[list[str]] = []
+
+    def fake_run(command, *, dry_run):  # noqa: ANN001
+        calls.append(command)
+
+    monkeypatch.setattr(runner, "_run", fake_run)
+    runner._prepare_dataset(
+        dataset_cfg={
+            "dataset_id": "dataset",
+            "split": "test",
+            "size": 2700,
+            "offset": 300,
+            "seed": 42,
+            "prepare": "always",
+        },
+        dataset_path=tmp_path / "cares_chunk2.jsonl",
+        dry_run=True,
+        prepare_override=None,
+    )
+
+    assert calls
+    command = calls[0]
+    assert "--limit" in command
+    assert command[command.index("--limit") + 1] == "2700"
+    assert "--offset" in command
+    assert command[command.index("--offset") + 1] == "300"

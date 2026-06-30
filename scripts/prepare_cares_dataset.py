@@ -38,7 +38,13 @@ def parse_args() -> argparse.Namespace:
         "--limit",
         type=int,
         default=None,
-        help="Optional maximum number of examples after shuffling.",
+        help="Optional number of examples after shuffling and offset.",
+    )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Number of shuffled examples to skip before applying --limit.",
     )
     parser.add_argument(
         "--seed",
@@ -53,15 +59,37 @@ def _records(dataset: Any) -> list[dict[str, Any]]:
     return [dict(row) for row in dataset]
 
 
+def select_records(
+    records: list[dict[str, Any]],
+    *,
+    limit: int | None,
+    offset: int = 0,
+    seed: int = 42,
+) -> list[dict[str, Any]]:
+    if offset < 0:
+        raise ValueError("--offset must be non-negative")
+    if limit is not None and limit < 0:
+        raise ValueError("--limit must be non-negative")
+
+    selected = list(records)
+    rng = random.Random(seed)
+    rng.shuffle(selected)
+    if limit is None:
+        return selected[offset:]
+    return selected[offset : offset + limit]
+
+
 def main() -> int:
     args = parse_args()
 
     dataset = load_dataset(args.dataset_id, split=args.split)
     records = _records(dataset)
-    if args.limit is not None:
-        rng = random.Random(args.seed)
-        rng.shuffle(records)
-        records = records[: args.limit]
+    records = select_records(
+        records,
+        limit=args.limit,
+        offset=args.offset,
+        seed=args.seed,
+    )
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -78,6 +106,7 @@ def main() -> int:
         "dataset_id": args.dataset_id,
         "split": args.split,
         "limit": args.limit,
+        "offset": args.offset,
         "seed": args.seed,
         "records": len(records),
     }
@@ -87,8 +116,8 @@ def main() -> int:
     )
 
     print(
-        f"Prepared CARES dataset: split={args.split}, records={len(records)}, "
-        f"output={output}"
+        f"Prepared CARES dataset: split={args.split}, offset={args.offset}, "
+        f"records={len(records)}, output={output}"
     )
     return 0
 

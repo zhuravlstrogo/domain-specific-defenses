@@ -142,8 +142,9 @@ run_matrix() {
     if [[ -n "${DATASET_SPLIT:-}" ]]; then
         args+=(--dataset-split "$DATASET_SPLIT")
     fi
-    if [[ -n "${DATASET_SIZE:-}" ]]; then
-        args+=(--dataset-size "$DATASET_SIZE")
+    args+=(--dataset-size "${DATASET_SIZE:-${LIMIT:-300}}")
+    if [[ -n "${DATASET_OFFSET:-}" ]]; then
+        args+=(--dataset-offset "$DATASET_OFFSET")
     fi
     if [[ -n "${DATASET_SEED:-}" ]]; then
         args+=(--dataset-seed "$DATASET_SEED")

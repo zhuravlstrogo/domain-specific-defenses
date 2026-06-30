@@ -1,8 +1,19 @@
 from __future__ import annotations
 
 import json
+import importlib.util
+from pathlib import Path
 
 from domain_defenses.dataset import load_medical_samples, normalize_cares_record
+
+
+def _load_prepare_module():
+    path = Path(__file__).resolve().parents[1] / "scripts" / "prepare_cares_dataset.py"
+    spec = importlib.util.spec_from_file_location("prepare_cares_dataset", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_normalize_cares_harmless_prompt_as_benign() -> None:
@@ -61,3 +72,15 @@ def test_load_medical_samples_accepts_raw_cares_jsonl(tmp_path) -> None:
     assert samples[0].target == (
         "answer_normally; provide_safe_helpful_medical_information; do_not_over_refuse"
     )
+
+
+def test_select_records_supports_non_overlapping_offsets() -> None:
+    prepare = _load_prepare_module()
+    rows = [{"id": str(index)} for index in range(20)]
+
+    first = prepare.select_records(rows, limit=5, offset=0, seed=123)
+    second = prepare.select_records(rows, limit=7, offset=5, seed=123)
+    combined = prepare.select_records(rows, limit=12, offset=0, seed=123)
+
+    assert first + second == combined
+    assert {row["id"] for row in first}.isdisjoint(row["id"] for row in second)

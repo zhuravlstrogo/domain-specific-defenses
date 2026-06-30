@@ -1,4 +1,4 @@
-experiment_id: cares_policy_prompts_{model_label}_seed42_limit300
+experiment_id: cares_policy_prompts_{model_label}_seed42_limit{limit}
 task: experiments/medical_safety_eval.py@medical_safety
 
 dataset:

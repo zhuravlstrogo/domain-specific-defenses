@@ -151,9 +151,7 @@ matrix_args_for_case() {
         MATRIX_ARGS+=(--experiment-suffix "$experiment_suffix")
     fi
     MATRIX_ARGS+=(--limit "$LIMIT")
-    if [[ -n "${DATASET_SIZE:-}" ]]; then
-        MATRIX_ARGS+=(--dataset-size "$DATASET_SIZE")
-    fi
+    MATRIX_ARGS+=(--dataset-size "${DATASET_SIZE:-$LIMIT}")
     if [[ -n "$judge_model_key" ]]; then
         MATRIX_ARGS+=(--judge-model-key "$judge_model_key")
     fi
@@ -165,6 +163,9 @@ matrix_args_for_case() {
     fi
     if [[ -n "${DATASET_SPLIT:-}" ]]; then
         MATRIX_ARGS+=(--dataset-split "$DATASET_SPLIT")
+    fi
+    if [[ -n "${DATASET_OFFSET:-}" ]]; then
+        MATRIX_ARGS+=(--dataset-offset "$DATASET_OFFSET")
     fi
     if [[ -n "${DATASET_SEED:-}" ]]; then
         MATRIX_ARGS+=(--dataset-seed "$DATASET_SEED")

@@ -63,6 +63,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-path", help="Override dataset.path.")
     parser.add_argument("--dataset-split", help="Override dataset.split.")
     parser.add_argument("--dataset-size", type=int, help="Override dataset.size.")
+    parser.add_argument("--dataset-offset", type=int, help="Override dataset.offset.")
     parser.add_argument("--dataset-seed", type=int, help="Override dataset.seed.")
     parser.add_argument("--log-root", help="Override output.log_root.")
     parser.add_argument("--report-csv", help="Override output.report_csv.")
@@ -113,6 +114,7 @@ def _expected_dataset_metadata(dataset_cfg: dict[str, Any]) -> dict[str, Any]:
         "dataset_id": dataset_cfg.get("dataset_id", "HFXM/CARES-18K"),
         "split": dataset_cfg.get("split", "test"),
         "limit": dataset_cfg.get("size", 300),
+        "offset": dataset_cfg.get("offset", 0),
         "seed": dataset_cfg.get("seed", 42),
     }
 
@@ -375,6 +377,8 @@ def _prepare_dataset(
         str(dataset_cfg.get("split", "test")),
         "--limit",
         str(dataset_cfg.get("size", 300)),
+        "--offset",
+        str(dataset_cfg.get("offset", 0)),
         "--seed",
         str(dataset_cfg.get("seed", 42)),
         "--output",
@@ -473,6 +477,8 @@ def main() -> int:
         dataset_cfg["split"] = args.dataset_split
     if args.dataset_size is not None:
         dataset_cfg["size"] = args.dataset_size
+    if args.dataset_offset is not None:
+        dataset_cfg["offset"] = args.dataset_offset
     if args.dataset_seed is not None:
         dataset_cfg["seed"] = args.dataset_seed
 
@@ -501,20 +507,28 @@ def main() -> int:
         )
     )
     raw_experiment_id = str(cfg["experiment_id"])
-    experiment_id = _format_template(
-        raw_experiment_id,
-        model_label=str(model_label),
-        runtime=runtime,
-    )
-    experiment_suffix = args.experiment_suffix or cfg.get("experiment_suffix")
-    if experiment_suffix:
-        experiment_id = f"{experiment_id}_{_sanitize_suffix(str(experiment_suffix))}"
     limit = args.limit if args.limit is not None else int(cfg.get("limit", 100))
     sample_shuffle = (
         args.sample_shuffle
         if args.sample_shuffle is not None
         else int(cfg.get("sample_shuffle", dataset_cfg.get("seed", 42)))
     )
+    template_context = {
+        "model_label": str(model_label),
+        "runtime": runtime,
+        "limit": str(limit),
+        "sample_shuffle": str(sample_shuffle),
+        "dataset_size": str(dataset_cfg.get("size", limit)),
+        "dataset_offset": str(dataset_cfg.get("offset", 0)),
+        "seed": str(dataset_cfg.get("seed", 42)),
+    }
+    experiment_id = _format_template(
+        raw_experiment_id,
+        **template_context,
+    )
+    experiment_suffix = args.experiment_suffix or cfg.get("experiment_suffix")
+    if experiment_suffix:
+        experiment_id = f"{experiment_id}_{_sanitize_suffix(str(experiment_suffix))}"
     baseline_run = str(cfg.get("baseline_run", "baseline"))
 
     dataset_path = _repo_path(dataset_cfg.get("path", "data/processed/cares_18k_v1.jsonl"))
@@ -523,24 +537,21 @@ def main() -> int:
         _format_template(
             args.log_root or output_cfg.get("log_root", "logs/experiments/{experiment_id}"),
             experiment_id=experiment_id,
-            model_label=str(model_label),
-            runtime=runtime,
+            **template_context,
         )
     )
     report_csv = _repo_path(
         _format_template(
             args.report_csv or output_cfg.get("report_csv", "reports/results/{experiment_id}.csv"),
             experiment_id=experiment_id,
-            model_label=str(model_label),
-            runtime=runtime,
+            **template_context,
         )
     )
     report_md = _repo_path(
         _format_template(
             args.report_md or output_cfg.get("report_md", "reports/results/{experiment_id}.md"),
             experiment_id=experiment_id,
-            model_label=str(model_label),
-            runtime=runtime,
+            **template_context,
         )
     )
 
