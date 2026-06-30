@@ -68,9 +68,9 @@ CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
-По умолчанию wrapper запускает два последовательных judge-прогона:
-`gpt-4o`, затем `claude-sonnet-4.5`. Артефакты разделяются по model label,
-например `...judge_gpt_4o...` и `...judge_claude_sonnet_4_5...`.
+По умолчанию wrapper запускает `gemini-2.5-pro` как judge через OpenRouter.
+`gpt-4o` временно отключен в runner-скриптах; чтобы вернуть его как второй
+judge, обновите `DEFAULT_JUDGE_MODEL_KEYS`.
 
 Та же схема для других моделей:
 
@@ -82,11 +82,11 @@ CONFIG=configs/experiments/cares_olmo_2_0425_1b_instruct.yaml \
 bash scripts/run_cares_experiments.sh
 ```
 
-Та же матрица только с Claude Sonnet 4.5 как judge через OpenRouter:
+Та же матрица только с Gemini 2.5 Pro как judge через OpenRouter:
 
 ```bash
 CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
-JUDGE_MODEL_KEY=claude-sonnet-4.5 \
+JUDGE_MODEL_KEY=gemini-2.5-pro \
 bash scripts/run_cares_experiments.sh
 ```
 
@@ -95,7 +95,7 @@ bash scripts/run_cares_experiments.sh
 ```bash
 python scripts/run_experiment_matrix.py \
   configs/experiments/cares_qwen3_1_7b.yaml \
-  --judge-model-key claude-sonnet-4.5
+  --judge-model-key gemini-2.5-pro
 ```
 
 Runner делает весь pipeline:

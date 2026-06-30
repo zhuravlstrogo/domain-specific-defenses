@@ -26,7 +26,9 @@ SEED="${SEED:-42}"
 LIMIT="${LIMIT:-300}"
 FORCE="${FORCE:-0}"
 RESUME="${RESUME:-1}"
-DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gpt-4o claude-sonnet-4.5}"
+# gpt-4o is temporarily disabled. Re-enable by setting:
+# DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gemini-2.5-pro gpt-4o}"
+DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gemini-2.5-pro}"
 SKIP_VALIDATE="${SKIP_VALIDATE:-0}"
 
 if [[ -n "${JUDGE_MODEL_NAME:-}" && -n "${JUDGE_MODEL_KEY:-}" ]]; then

@@ -37,8 +37,8 @@ provider:
     base_url: https://openrouter.ai/api/v1
     env_key: OPENROUTER_API_KEY
     models:
-      claude-sonnet-4.5: openai-api/openrouter/anthropic/claude-sonnet-4.5
-      gpt-4o: openai-api/openrouter/openai/gpt-4o
+      gemini-2.5-pro: openai-api/openrouter/google/gemini-2.5-pro
+      # gpt-4o: openai-api/openrouter/openai/gpt-4o
       qwen3-1.7b: openai-api/openrouter/qwen/qwen3-1.7b
       qwen-2.5-72b-instruct: openai-api/openrouter/qwen/qwen-2.5-72b-instruct
 
@@ -54,7 +54,7 @@ runtime:
     judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -83,7 +83,7 @@ runtime:
     judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -113,7 +113,7 @@ runtime:
     judge_provider: openrouter
     main_model: qwen3-1.7b
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -143,7 +143,7 @@ runtime:
     judge_provider: openrouter
     main_model: gemma-3-4b-it
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -172,7 +172,7 @@ runtime:
     judge_provider: openrouter
     main_model: gemma-3-4b-it
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -202,7 +202,7 @@ runtime:
     judge_provider: openrouter
     main_model: olmo2-0425-1b-instruct
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
@@ -231,7 +231,7 @@ runtime:
     judge_provider: openrouter
     main_model: olmo2-0425-1b-instruct
     guard_model: qwen3-guard-0.6b
-    judge_model: gpt-4o
+    judge_model: gemini-2.5-pro
 
     model_args:
       device: cuda:0
