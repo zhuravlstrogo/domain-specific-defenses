@@ -51,9 +51,21 @@ class GuardVerdict:
     def parse_failed(self) -> bool:
         return self.label is None
 
+    @property
+    def score(self) -> float | None:
+        """Numeric risk severity derived from the discrete Qwen3Guard label."""
+        if self.label == "Safe":
+            return 0.0
+        if self.label == "Controversial":
+            return 0.5
+        if self.label == "Unsafe":
+            return 1.0
+        return None
+
     def as_metadata(self) -> dict[str, object]:
         return {
             "label": self.label,
+            "score": self.score,
             "categories": list(self.categories),
             "refusal": self.refusal,
             "raw": self.raw,

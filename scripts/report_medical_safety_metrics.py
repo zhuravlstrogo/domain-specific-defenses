@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from domain_defenses.analysis import (
+    CARES_PRINCIPLES,
     eval_log_is_complete_and_scored,
     eval_log_sort_key,
     log_to_df,
@@ -79,6 +81,16 @@ def parse_args() -> argparse.Namespace:
         "--principle-md-out",
         default=None,
         help="Optional Markdown output path for per-principle breakdown.",
+    )
+    parser.add_argument(
+        "--slice-csv-out",
+        default=None,
+        help="Optional CSV output path for category/form/principle breakdown.",
+    )
+    parser.add_argument(
+        "--slice-md-out",
+        default=None,
+        help="Optional Markdown output path for category/form/principle breakdown.",
     )
     parser.add_argument(
         "--delta-ci-samples",
@@ -153,6 +165,10 @@ def _guardrail_df(log: Any) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for sample in log.samples:
         metadata = sample.metadata or {}
+        input_guardrail = metadata.get("input_guardrail")
+        output_guardrail = metadata.get("output_guardrail")
+        input_score = _guardrail_score(input_guardrail)
+        output_score = _guardrail_score(output_guardrail)
         has_guardrail = (
             "input_guardrail" in metadata
             or "output_guardrail" in metadata
@@ -165,9 +181,54 @@ def _guardrail_df(log: Any) -> pd.DataFrame:
                 "bypass_type": metadata.get("bypass_type", "none"),
                 "blocked": bool(metadata.get("guardrail_blocked", False)),
                 "has_guardrail": has_guardrail,
+                "input_guardrail_score": input_score,
+                "output_guardrail_score": output_score,
+                "guardrail_score": _max_optional(input_score, output_score),
             }
         )
     return pd.DataFrame(rows)
+
+
+def _guardrail_score(value: Any) -> float | None:
+    if not isinstance(value, dict):
+        return None
+    raw_score = value.get("score")
+    if raw_score is not None:
+        try:
+            return float(raw_score)
+        except (TypeError, ValueError):
+            pass
+    label = value.get("label")
+    if label == "Safe":
+        return 0.0
+    if label == "Controversial":
+        return 0.5
+    if label == "Unsafe":
+        return 1.0
+    return None
+
+
+def _max_optional(*values: float | None) -> float | None:
+    observed = [value for value in values if value is not None]
+    return max(observed) if observed else None
+
+
+def _add_mean_with_ci(metrics: dict[str, float], name: str, values: pd.Series) -> None:
+    observed = pd.to_numeric(values, errors="coerce").dropna()
+    n_total = int(len(observed))
+    if n_total <= 0:
+        return
+    mean = float(observed.mean())
+    metrics[name] = mean
+    metrics[f"{name}_n"] = n_total
+    if n_total == 1:
+        metrics[f"{name}_ci_low"] = mean
+        metrics[f"{name}_ci_high"] = mean
+        return
+    se = float(observed.std(ddof=1)) / math.sqrt(n_total)
+    margin = 1.959963984540054 * se
+    metrics[f"{name}_ci_low"] = max(0.0, mean - margin)
+    metrics[f"{name}_ci_high"] = min(1.0, mean + margin)
 
 
 def _summarize_guardrail_df(df: pd.DataFrame) -> dict[str, float]:
@@ -196,6 +257,9 @@ def _summarize_guardrail_df(df: pd.DataFrame) -> dict[str, float]:
     add_block_rate("risky_guardrail_block_rate", risky)
     add_block_rate("benign_guardrail_block_rate", benign)
     add_block_rate("bypass_guardrail_block_rate", bypass)
+    _add_mean_with_ci(metrics, "guardrail_score_mean", df["guardrail_score"])
+    _add_mean_with_ci(metrics, "input_guardrail_score_mean", df["input_guardrail_score"])
+    _add_mean_with_ci(metrics, "output_guardrail_score_mean", df["output_guardrail_score"])
     return metrics
 
 
@@ -219,6 +283,109 @@ def _slices_summary(log: Any) -> dict[str, int]:
             ).sum()
         ),
     }
+
+
+_PROMPT_FORM_ORDER = ["direct", "obfuscation", "indirect", "role-play"]
+_PROMPT_FORM_LABELS = {
+    "direct": "direct",
+    "none": "direct",
+    "obfuscate": "obfuscation",
+    "obfuscation": "obfuscation",
+    "indirect": "indirect",
+    "role_play": "role-play",
+    "role-play": "role-play",
+}
+
+
+def _prompt_form_value(row: pd.Series) -> str:
+    value = row.get("cares_method")
+    if value is None or pd.isna(value) or str(value).strip() == "":
+        value = row.get("bypass_type")
+    raw = "direct" if value is None or pd.isna(value) else str(value).strip()
+    return _PROMPT_FORM_LABELS.get(raw, raw)
+
+
+def _prompt_form_series(df: pd.DataFrame) -> pd.Series:
+    if df.empty:
+        return pd.Series(dtype="object")
+    return df.apply(_prompt_form_value, axis=1)
+
+
+def _slice_row(
+    *,
+    policy: str,
+    model: str | None,
+    dimension: str,
+    slice_id: str,
+    slice_label: str,
+    subset: pd.DataFrame,
+) -> dict[str, object]:
+    return {
+        "policy": policy,
+        "model": model,
+        "dimension": dimension,
+        "slice": slice_id,
+        "slice_label": slice_label,
+        "n": int(len(subset)),
+        **summarize_medical_eval(subset),
+    }
+
+
+def _slice_rows_for_run(
+    *,
+    policy: str,
+    model: str | None,
+    df: pd.DataFrame,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+
+    category_order = ["benign", "risky", "edge_case"]
+    categories = [str(value) for value in df["category"].dropna().unique()]
+    for category in [*category_order, *sorted(set(categories) - set(category_order))]:
+        subset = df[df["category"] == category]
+        if len(subset):
+            rows.append(
+                _slice_row(
+                    policy=policy,
+                    model=model,
+                    dimension="risk_category",
+                    slice_id=category,
+                    slice_label=category,
+                    subset=subset,
+                )
+            )
+
+    forms = _prompt_form_series(df)
+    observed_forms = [str(value) for value in forms.dropna().unique()]
+    for form in [*_PROMPT_FORM_ORDER, *sorted(set(observed_forms) - set(_PROMPT_FORM_ORDER))]:
+        subset = df[forms == form]
+        if len(subset):
+            rows.append(
+                _slice_row(
+                    policy=policy,
+                    model=model,
+                    dimension="prompt_form",
+                    slice_id=form,
+                    slice_label=form,
+                    subset=subset,
+                )
+            )
+
+    for subtype, principle in CARES_PRINCIPLES.items():
+        subset = df[df["subtype"] == subtype]
+        if len(subset):
+            rows.append(
+                _slice_row(
+                    policy=policy,
+                    model=model,
+                    dimension="cares_principle",
+                    slice_id=subtype,
+                    slice_label=principle,
+                    subset=subset,
+                )
+            )
+
+    return rows
 
 
 def _metrics_row(
@@ -417,6 +584,7 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
 
     per_run: list[dict[str, object]] = []
     principle_rows: list[dict[str, object]] = []
+    slice_rows: list[dict[str, object]] = []
     metrics_by_run: dict[str, dict[str, float]] = {}
     dfs_by_run: dict[str, pd.DataFrame] = {}
     guardrail_dfs_by_run: dict[str, pd.DataFrame] = {}
@@ -451,6 +619,7 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
         )
         for principle_row in summarize_by_principle(df):
             principle_rows.append({"policy": run_id, "model": args.model, **principle_row})
+        slice_rows.extend(_slice_rows_for_run(policy=run_id, model=args.model, df=df))
 
     baseline_metrics = metrics_by_run.get(args.baseline_run)
     if baseline_metrics is None:
@@ -529,6 +698,27 @@ def _run_multi_mode(args: argparse.Namespace) -> list[Path]:
             md_out=principle_md,
             title="CARES Defense Comparison — Per-Principle Breakdown",
             context_lines=context,
+        )
+
+    if slice_rows:
+        slice_csv = Path(
+            args.slice_csv_out
+            or str(Path(args.csv_out).with_name(Path(args.csv_out).stem + "_by_slice.csv"))
+        )
+        slice_md = Path(
+            args.slice_md_out
+            or str(Path(args.md_out).with_name(Path(args.md_out).stem + "_by_slice.md"))
+        )
+        _write_report(
+            rows=slice_rows,
+            csv_out=slice_csv,
+            md_out=slice_md,
+            title="CARES Defense Comparison — Slice Breakdown",
+            context_lines=[
+                *context,
+                "",
+                "Slices include risk category, prompt form, and CARES principle.",
+            ],
         )
 
     return log_paths

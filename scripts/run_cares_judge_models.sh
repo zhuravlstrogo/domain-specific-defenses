@@ -13,6 +13,7 @@ export FORCE="${FORCE:-0}"
 export RESUME="${RESUME:-1}"
 export SKIP_VALIDATE="${SKIP_VALIDATE:-0}"
 export DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gpt-oss-120b qwen3-32b}"
+export RUN_THINK="${RUN_THINK:-1}"
 export WAIT_FOR_INFERENCE="${WAIT_FOR_INFERENCE:-1}"
 export INFERENCE_WAIT_TIMEOUT_SECONDS="${INFERENCE_WAIT_TIMEOUT_SECONDS:-86400}"
 export INFERENCE_WAIT_POLL_SECONDS="${INFERENCE_WAIT_POLL_SECONDS:-60}"
@@ -42,9 +43,27 @@ if [[ -n "${MODEL_LABEL:-}" || -n "${LOG_ROOT:-}" || -n "${REPORT_MD:-}" || -n "
     exit 1
 fi
 
+effective_experiment_suffix() {
+    local case_suffix="${1:-}"
+    local experiment_suffix="${EXPERIMENT_SUFFIX:-}"
+
+    if [[ -n "$case_suffix" ]]; then
+        if [[ -n "$experiment_suffix" ]]; then
+            experiment_suffix="${experiment_suffix}_${case_suffix}"
+        else
+            experiment_suffix="$case_suffix"
+        fi
+    fi
+    echo "$experiment_suffix"
+}
+
 common_args_for_case() {
     local config="$1"
     local runtime="$2"
+    local case_suffix="${3:-}"
+    local experiment_suffix
+
+    experiment_suffix="$(effective_experiment_suffix "$case_suffix")"
 
     MATRIX_ARGS=(
         python scripts/run_experiment_matrix.py "$config"
@@ -53,8 +72,8 @@ common_args_for_case() {
         --limit "$LIMIT"
         --dataset-size "${DATASET_SIZE:-$LIMIT}"
     )
-    if [[ -n "${EXPERIMENT_SUFFIX:-}" ]]; then
-        MATRIX_ARGS+=(--experiment-suffix "$EXPERIMENT_SUFFIX")
+    if [[ -n "$experiment_suffix" ]]; then
+        MATRIX_ARGS+=(--experiment-suffix "$experiment_suffix")
     fi
     if [[ -n "${DATASET_PATH:-}" ]]; then
         MATRIX_ARGS+=(--dataset-path "$DATASET_PATH")
@@ -85,11 +104,12 @@ common_args_for_case() {
 resolve_inference_log_root() {
     local config="$1"
     local runtime="$2"
+    local case_suffix="${3:-}"
     local key
     local value
     local log_root=""
 
-    common_args_for_case "$config" "$runtime"
+    common_args_for_case "$config" "$runtime" "$case_suffix"
     MATRIX_ARGS+=(--skip-scorer --skip-report --print-output-paths)
 
     while IFS='=' read -r key value; do
@@ -108,6 +128,7 @@ resolve_inference_log_root() {
 resolve_report_paths() {
     local config="$1"
     local runtime="$2"
+    local case_suffix="${3:-}"
     local judge_model_key
     local key
     local value
@@ -118,7 +139,7 @@ resolve_report_paths() {
     for judge_model_key in "${judge_model_keys[@]}"; do
         report_csv=""
         log_root=""
-        common_args_for_case "$config" "$runtime"
+        common_args_for_case "$config" "$runtime" "$case_suffix"
         if [[ -n "$judge_model_key" ]]; then
             MATRIX_ARGS+=(--judge-model-key "$judge_model_key")
         fi
@@ -145,7 +166,9 @@ resolve_report_paths() {
 
 run_judge_agreement() {
     local model_id="$1"
+    local case_suffix="${2:-}"
     local suffix_part=""
+    local experiment_suffix
     local agreement_csv
     local agreement_md
     local agreement_args
@@ -157,8 +180,9 @@ run_judge_agreement() {
         return
     fi
 
-    if [[ -n "${EXPERIMENT_SUFFIX:-}" ]]; then
-        suffix_part="_$EXPERIMENT_SUFFIX"
+    experiment_suffix="$(effective_experiment_suffix "$case_suffix")"
+    if [[ -n "$experiment_suffix" ]]; then
+        suffix_part="_$experiment_suffix"
     fi
     agreement_csv="reports/results/cares_${model_id}_judge_agreement${suffix_part}.csv"
     agreement_md="reports/results/cares_${model_id}_judge_agreement${suffix_part}.md"
@@ -266,14 +290,15 @@ run_judge_case() {
     local config="$1"
     local model_id="$2"
     local runtime="$3"
+    local case_suffix="${4:-}"
     local inference_log_root
     local judge_model_key
 
-    inference_log_root="$(resolve_inference_log_root "$config" "$runtime")"
-    resolve_report_paths "$config" "$runtime"
+    inference_log_root="$(resolve_inference_log_root "$config" "$runtime" "$case_suffix")"
+    resolve_report_paths "$config" "$runtime" "$case_suffix"
 
     for judge_model_key in "${judge_model_keys[@]}"; do
-        common_args_for_case "$config" "$runtime"
+        common_args_for_case "$config" "$runtime" "$case_suffix"
         if [[ -n "$judge_model_key" ]]; then
             MATRIX_ARGS+=(--judge-model-key "$judge_model_key")
         fi
@@ -292,7 +317,7 @@ run_judge_case() {
         echo "==> judge: $model_id | runtime: $runtime | judge: ${judge_model_key:-$JUDGE_MODEL_NAME} | score-only from $inference_log_root"
         "${MATRIX_ARGS[@]}"
     done
-    run_judge_agreement "$model_id"
+    run_judge_agreement "$model_id" "$case_suffix"
     validate_case_outputs "$model_id"
 }
 
@@ -311,7 +336,35 @@ runtimes=(
     "${GEMMA_RUNTIME:-a10_hf_gemma_3_4b_it_openrouter_judge}"
     "${OLMO_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_openrouter_judge}"
 )
+case_suffixes=(
+    ""
+    ""
+    ""
+)
+
+if [[ "$RUN_THINK" == "1" ]]; then
+    configs+=(
+        "configs/experiments/cares_qwen3_1_7b.yaml"
+        "configs/experiments/cares_gemma_3_4b_it.yaml"
+        "configs/experiments/cares_olmo_2_0425_1b_instruct.yaml"
+    )
+    model_ids+=(
+        "qwen3_1_7b"
+        "gemma_3_4b_it"
+        "olmo2_0425_1b_instruct"
+    )
+    runtimes+=(
+        "${QWEN3_THINK_RUNTIME:-a10_hf_qwen3_1_7b_think_openrouter_judge}"
+        "${GEMMA_THINK_RUNTIME:-a10_hf_gemma_3_4b_it_think_openrouter_judge}"
+        "${OLMO_THINK_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_think_openrouter_judge}"
+    )
+    case_suffixes+=(
+        "think"
+        "think"
+        "think"
+    )
+fi
 
 for i in "${!configs[@]}"; do
-    run_judge_case "${configs[$i]}" "${model_ids[$i]}" "${runtimes[$i]}"
+    run_judge_case "${configs[$i]}" "${model_ids[$i]}" "${runtimes[$i]}" "${case_suffixes[$i]}"
 done

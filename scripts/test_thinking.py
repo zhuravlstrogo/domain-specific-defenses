@@ -103,6 +103,11 @@ def parse_args() -> argparse.Namespace:
         description="Run thinking ablation experiment (no_think vs think on CARES baseline)."
     )
     parser.add_argument("--dry-run", action="store_true", help="Print commands without running.")
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="Build the report from existing logs without running evals.",
+    )
     parser.add_argument("--skip-report", action="store_true", help="Skip report generation.")
     parser.add_argument(
         "--resume",
@@ -168,28 +173,42 @@ def main() -> int:
         print(f"ERROR: dataset not found: {DATASET_PATH}", file=sys.stderr)
         return 1
 
-    for cond in CONDITIONS:
-        log_dir = LOG_ROOT / cond["id"]
-        if not args.dry_run:
-            log_dir.mkdir(parents=True, exist_ok=True)
+    if args.report_only:
+        missing = [
+            str(LOG_ROOT / cond["id"])
+            for cond in CONDITIONS
+            if not _has_complete_eval(LOG_ROOT / cond["id"])
+        ]
+        if missing:
+            print(
+                "ERROR: report-only mode requires complete scored logs in: "
+                + ", ".join(missing),
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        for cond in CONDITIONS:
+            log_dir = LOG_ROOT / cond["id"]
+            if not args.dry_run:
+                log_dir.mkdir(parents=True, exist_ok=True)
 
-        if args.resume and not args.dry_run and log_dir.exists() and _has_complete_eval(log_dir):
-            print(f"Skipping {cond['id']} — complete eval log found.")
-            continue
+            if args.resume and not args.dry_run and log_dir.exists() and _has_complete_eval(log_dir):
+                print(f"Skipping {cond['id']} — complete eval log found.")
+                continue
 
-        print(f"\n--- {cond['id']} ({cond['description']}) ---")
-        _run(
-            [
-                "inspect", "eval", TASK,
-                "-T", f"runtime={cond['runtime']}",
-                "-T", f"dataset_path={DATASET_PATH}",
-                "-T", "policy=baseline",
-                "--limit", str(args.limit),
-                "--sample-shuffle", str(SAMPLE_SHUFFLE),
-                "--log-dir", str(log_dir),
-            ],
-            dry_run=args.dry_run,
-        )
+            print(f"\n--- {cond['id']} ({cond['description']}) ---")
+            _run(
+                [
+                    "inspect", "eval", TASK,
+                    "-T", f"runtime={cond['runtime']}",
+                    "-T", f"dataset_path={DATASET_PATH}",
+                    "-T", "policy=baseline",
+                    "--limit", str(args.limit),
+                    "--sample-shuffle", str(SAMPLE_SHUFFLE),
+                    "--log-dir", str(log_dir),
+                ],
+                dry_run=args.dry_run,
+            )
 
     if args.skip_report:
         return 0

@@ -11,6 +11,7 @@ export SEED="${SEED:-42}"
 export LIMIT="${LIMIT:-300}"
 export FORCE="${FORCE:-0}"
 export RESUME="${RESUME:-1}"
+export RUN_THINK="${RUN_THINK:-1}"
 
 if [[ "$FORCE" == "1" ]]; then
     export RESUME=0
@@ -26,7 +27,17 @@ run_inference_case() {
     local config="$1"
     local model_id="$2"
     local runtime="$3"
+    local case_suffix="${4:-}"
+    local experiment_suffix="${EXPERIMENT_SUFFIX:-}"
     local args
+
+    if [[ -n "$case_suffix" ]]; then
+        if [[ -n "$experiment_suffix" ]]; then
+            experiment_suffix="${experiment_suffix}_${case_suffix}"
+        else
+            experiment_suffix="$case_suffix"
+        fi
+    fi
 
     args=(
         python scripts/run_experiment_matrix.py "$config"
@@ -37,8 +48,8 @@ run_inference_case() {
         --skip-scorer
         --skip-report
     )
-    if [[ -n "${EXPERIMENT_SUFFIX:-}" ]]; then
-        args+=(--experiment-suffix "$EXPERIMENT_SUFFIX")
+    if [[ -n "$experiment_suffix" ]]; then
+        args+=(--experiment-suffix "$experiment_suffix")
     fi
     if [[ -n "${DATASET_PATH:-}" ]]; then
         args+=(--dataset-path "$DATASET_PATH")
@@ -81,7 +92,35 @@ runtimes=(
     "${GEMMA_RUNTIME:-a10_hf_gemma_3_4b_it_openrouter_judge}"
     "${OLMO_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_openrouter_judge}"
 )
+case_suffixes=(
+    ""
+    ""
+    ""
+)
+
+if [[ "$RUN_THINK" == "1" ]]; then
+    configs+=(
+        "configs/experiments/cares_qwen3_1_7b.yaml"
+        "configs/experiments/cares_gemma_3_4b_it.yaml"
+        "configs/experiments/cares_olmo_2_0425_1b_instruct.yaml"
+    )
+    model_ids+=(
+        "qwen3_1_7b"
+        "gemma_3_4b_it"
+        "olmo2_0425_1b_instruct"
+    )
+    runtimes+=(
+        "${QWEN3_THINK_RUNTIME:-a10_hf_qwen3_1_7b_think_openrouter_judge}"
+        "${GEMMA_THINK_RUNTIME:-a10_hf_gemma_3_4b_it_think_openrouter_judge}"
+        "${OLMO_THINK_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_think_openrouter_judge}"
+    )
+    case_suffixes+=(
+        "think"
+        "think"
+        "think"
+    )
+fi
 
 for i in "${!configs[@]}"; do
-    run_inference_case "${configs[$i]}" "${model_ids[$i]}" "${runtimes[$i]}"
+    run_inference_case "${configs[$i]}" "${model_ids[$i]}" "${runtimes[$i]}" "${case_suffixes[$i]}"
 done

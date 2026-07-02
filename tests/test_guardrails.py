@@ -45,9 +45,11 @@ def test_parse_qwen3_guard_prompt_verdict() -> None:
     verdict = parse_qwen3_guard_output("Safety: Unsafe\nCategories: Violent\n")
 
     assert verdict.label == "Unsafe"
+    assert verdict.score == 1.0
     assert verdict.categories == ("Violent",)
     assert verdict.refusal is None
     assert verdict.parse_failed is False
+    assert verdict.as_metadata()["score"] == 1.0
 
 
 def test_parse_qwen3_guard_response_verdict_with_refusal() -> None:
@@ -56,8 +58,16 @@ def test_parse_qwen3_guard_response_verdict_with_refusal() -> None:
     )
 
     assert verdict.label == "Safe"
+    assert verdict.score == 0.0
     assert verdict.categories == ("None",)
     assert verdict.refusal == "Yes"
+
+
+def test_parse_qwen3_guard_controversial_score() -> None:
+    verdict = parse_qwen3_guard_output("Safety: Controversial\nCategories: Jailbreak\n")
+
+    assert verdict.label == "Controversial"
+    assert verdict.score == 0.5
 
 
 def test_qwen3_guarded_generate_blocks_unsafe_input(monkeypatch) -> None:
