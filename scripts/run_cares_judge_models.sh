@@ -13,6 +13,9 @@ export FORCE="${FORCE:-0}"
 export RESUME="${RESUME:-1}"
 export SKIP_VALIDATE="${SKIP_VALIDATE:-0}"
 export DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gpt-oss-120b qwen3-32b}"
+export WAIT_FOR_INFERENCE="${WAIT_FOR_INFERENCE:-1}"
+export INFERENCE_WAIT_TIMEOUT_SECONDS="${INFERENCE_WAIT_TIMEOUT_SECONDS:-86400}"
+export INFERENCE_WAIT_POLL_SECONDS="${INFERENCE_WAIT_POLL_SECONDS:-60}"
 
 if [[ "$FORCE" == "1" ]]; then
     export RESUME=0
@@ -278,6 +281,13 @@ run_judge_case() {
             MATRIX_ARGS+=(--judge-model-name "$JUDGE_MODEL_NAME")
         fi
         MATRIX_ARGS+=(--score-from-log-root "$inference_log_root")
+        if [[ "$WAIT_FOR_INFERENCE" == "1" ]]; then
+            MATRIX_ARGS+=(
+                --wait-for-score-source
+                --score-source-timeout-seconds "$INFERENCE_WAIT_TIMEOUT_SECONDS"
+                --score-source-poll-seconds "$INFERENCE_WAIT_POLL_SECONDS"
+            )
+        fi
 
         echo "==> judge: $model_id | runtime: $runtime | judge: ${judge_model_key:-$JUDGE_MODEL_NAME} | score-only from $inference_log_root"
         "${MATRIX_ARGS[@]}"

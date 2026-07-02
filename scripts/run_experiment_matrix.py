@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,6 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from domain_defenses.analysis import eval_log_is_complete_and_scored
 from domain_defenses.analysis import eval_log_sort_key
 from domain_defenses.config import get_runtime_model_label
 from domain_defenses.config import get_runtime_model_name
@@ -76,6 +76,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--score-from-log-root",
         help="Reuse generated responses from this log root and run only scoring.",
+    )
+    parser.add_argument(
+        "--wait-for-score-source",
+        action="store_true",
+        help="In score-only mode, wait for the source .eval file to become complete.",
+    )
+    parser.add_argument(
+        "--score-source-timeout-seconds",
+        type=float,
+        default=0,
+        help="Maximum seconds to wait for a score source; 0 waits indefinitely.",
+    )
+    parser.add_argument(
+        "--score-source-poll-seconds",
+        type=float,
+        default=60,
+        help="Seconds between score source readiness checks.",
     )
     return parser.parse_args()
 
@@ -328,13 +345,36 @@ def _log_has_healthy_judge_scores(log: Any) -> bool:
     return True
 
 
+def _score_value_is_usable(value: Any) -> bool:
+    return value in ("C", "I", "correct", "incorrect", True, False, 0, 1)
+
+
+def _sample_has_score(sample: Any) -> bool:
+    for score in (getattr(sample, "scores", None) or {}).values():
+        if _score_value_is_usable(getattr(score, "value", None)):
+            return True
+    return False
+
+
+def _log_has_expected_samples(log: Any, expected_sample_count: int | None) -> bool:
+    samples = getattr(log, "samples", None) or []
+    if not samples:
+        return False
+    if expected_sample_count is None:
+        return True
+    return len(samples) >= expected_sample_count
+
+
+def _log_has_complete_scores(log: Any, expected_sample_count: int | None) -> bool:
+    samples = getattr(log, "samples", None) or []
+    if not _log_has_expected_samples(log, expected_sample_count):
+        return False
+    return all(_sample_has_score(sample) for sample in samples)
+
+
 def _eval_log_is_success(log: Any) -> bool:
     status = getattr(log, "status", None)
     return status is None or str(status).lower() == "success"
-
-
-def _eval_log_has_samples(log: Any) -> bool:
-    return bool(getattr(log, "samples", None) or [])
 
 
 def _has_complete_eval_log(
@@ -342,6 +382,7 @@ def _has_complete_eval_log(
     *,
     judge_model_name: str | None = None,
     require_scores: bool = True,
+    expected_sample_count: int | None = None,
 ) -> bool:
     if not log_dir.exists():
         return False
@@ -356,18 +397,26 @@ def _has_complete_eval_log(
             continue
         if require_scores:
             complete = (
-                eval_log_is_complete_and_scored(log)
+                _eval_log_is_success(log)
+                and _log_has_complete_scores(log, expected_sample_count)
                 and _log_uses_judge(log, judge_model_name)
                 and _log_has_healthy_judge_scores(log)
             )
         else:
-            complete = _eval_log_is_success(log) and _eval_log_has_samples(log)
+            complete = _eval_log_is_success(log) and _log_has_expected_samples(
+                log, expected_sample_count
+            )
         if complete:
             return True
     return False
 
 
-def _latest_complete_eval(log_dir: Path, *, require_scores: bool = True) -> Path:
+def _latest_complete_eval(
+    log_dir: Path,
+    *,
+    require_scores: bool = True,
+    expected_sample_count: int | None = None,
+) -> Path:
     if not log_dir.exists():
         raise FileNotFoundError(f"Log directory not found: {log_dir}")
     rejected: list[str] = []
@@ -382,9 +431,13 @@ def _latest_complete_eval(log_dir: Path, *, require_scores: bool = True) -> Path
             rejected.append(f"{path.name}: unreadable ({exc})")
             continue
         if require_scores:
-            complete = eval_log_is_complete_and_scored(log)
+            complete = _eval_log_is_success(log) and _log_has_complete_scores(
+                log, expected_sample_count
+            )
         else:
-            complete = _eval_log_is_success(log) and _eval_log_has_samples(log)
+            complete = _eval_log_is_success(log) and _log_has_expected_samples(
+                log, expected_sample_count
+            )
         if complete:
             return path
         status = getattr(log, "status", None)
@@ -393,6 +446,42 @@ def _latest_complete_eval(log_dir: Path, *, require_scores: bool = True) -> Path
     detail = "; ".join(rejected)
     scored = " scored" if require_scores else ""
     raise ValueError(f"No successful{scored} .eval files found in {log_dir}: {detail}")
+
+
+def _wait_for_latest_complete_eval(
+    log_dir: Path,
+    *,
+    require_scores: bool,
+    expected_sample_count: int | None,
+    timeout_seconds: float,
+    poll_seconds: float,
+) -> Path:
+    started = time.monotonic()
+    next_message = 0.0
+    last_error: Exception | None = None
+    poll_seconds = max(1.0, poll_seconds)
+
+    while True:
+        try:
+            return _latest_complete_eval(
+                log_dir,
+                require_scores=require_scores,
+                expected_sample_count=expected_sample_count,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            last_error = exc
+
+        elapsed = time.monotonic() - started
+        if timeout_seconds > 0 and elapsed >= timeout_seconds:
+            raise TimeoutError(
+                f"Timed out after {timeout_seconds:.0f}s waiting for complete .eval in "
+                f"{log_dir}: {last_error}"
+            ) from last_error
+
+        if elapsed >= next_message:
+            print(f"waiting for complete .eval in {log_dir} ({elapsed:.0f}s elapsed)")
+            next_message = elapsed + max(60.0, poll_seconds)
+        time.sleep(poll_seconds)
 
 
 def _prepare_dataset(
@@ -667,6 +756,7 @@ def main() -> int:
             log_dir,
             judge_model_name=resolved_judge_model_name,
             require_scores=not args.skip_scorer,
+            expected_sample_count=limit,
         ):
             skipped_runs.append(run_id)
             if args.skip_scorer:
@@ -689,11 +779,24 @@ def main() -> int:
             eval_commands.append(command)
         else:
             source_dir = score_from_log_root / run_id
-            if args.dry_run and not source_dir.exists():
+            if args.dry_run:
                 source_log = source_dir / "<latest-successful.eval>"
                 output_file = log_dir / f"{run_id}_rescored.eval"
             else:
-                source_log = _latest_complete_eval(source_dir, require_scores=False)
+                if args.wait_for_score_source:
+                    source_log = _wait_for_latest_complete_eval(
+                        source_dir,
+                        require_scores=False,
+                        expected_sample_count=limit,
+                        timeout_seconds=args.score_source_timeout_seconds,
+                        poll_seconds=args.score_source_poll_seconds,
+                    )
+                else:
+                    source_log = _latest_complete_eval(
+                        source_dir,
+                        require_scores=False,
+                        expected_sample_count=limit,
+                    )
                 output_file = log_dir / source_log.name
             command = _build_score_command(
                 source_log=source_log,

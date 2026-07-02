@@ -371,8 +371,8 @@ python scripts/report_medical_safety_metrics.py \
 | `REPORT_CSV` | config value | csv отчет |
 | `PREPARE_DATASET` | config value | `auto`, `always`, или `never` |
 | `JUDGE_MAX_TOKENS` | `1024` | max output tokens для LLM-as-judge; ограничивает worst-case стоимость OpenRouter-запроса |
-| `JUDGE_REQUEST_SLEEP_MIN` | `0.5` | минимальная пауза между стартами OpenRouter judge requests, секунды |
-| `JUDGE_REQUEST_SLEEP_MAX` | `2.0` | максимальная пауза между стартами OpenRouter judge requests, секунды |
+| `JUDGE_REQUEST_SLEEP_MIN` | `0.2` | минимальная пауза между стартами OpenRouter judge requests, секунды |
+| `JUDGE_REQUEST_SLEEP_MAX` | `0.8` | максимальная пауза между стартами OpenRouter judge requests, секунды |
 | `DRY_RUN` | unset | `1` печатает команды без запуска |
 | `SKIP_REPORT` | unset | `1` не собирает отчет |
 

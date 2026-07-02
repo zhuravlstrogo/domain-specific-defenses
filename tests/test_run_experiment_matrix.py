@@ -114,3 +114,65 @@ def test_resume_rejects_complete_logs_with_judge_failures() -> None:
     )
 
     assert runner._log_has_healthy_judge_scores(log) is False
+
+
+def test_resume_requires_expected_unscored_sample_count(tmp_path, monkeypatch) -> None:
+    runner = _load_module()
+    log_path = tmp_path / "2026-01-01T00-00-00_run.eval"
+    log_path.write_text("", encoding="utf-8")
+
+    monkeypatch.setattr(
+        runner,
+        "read_eval_log",
+        lambda _path: SimpleNamespace(
+            status="success",
+            samples=[SimpleNamespace(scores=None), SimpleNamespace(scores=None)],
+        ),
+    )
+
+    assert not runner._has_complete_eval_log(
+        tmp_path,
+        require_scores=False,
+        expected_sample_count=3,
+    )
+    assert runner._has_complete_eval_log(
+        tmp_path,
+        require_scores=False,
+        expected_sample_count=2,
+    )
+
+
+def test_resume_requires_score_for_every_expected_sample(tmp_path, monkeypatch) -> None:
+    runner = _load_module()
+    log_path = tmp_path / "2026-01-01T00-00-00_run.eval"
+    log_path.write_text("", encoding="utf-8")
+
+    monkeypatch.setattr(
+        runner,
+        "read_eval_log",
+        lambda _path: SimpleNamespace(
+            status="success",
+            eval=SimpleNamespace(scorers=[]),
+            results=SimpleNamespace(scores=[]),
+            samples=[
+                SimpleNamespace(
+                    scores={
+                        "structured_medical_safety_scorer": SimpleNamespace(
+                            value="C",
+                            metadata={
+                                "judge_error": False,
+                                "judge_parse_failed": False,
+                            },
+                        )
+                    }
+                ),
+                SimpleNamespace(scores=None),
+            ],
+        ),
+    )
+
+    assert not runner._has_complete_eval_log(
+        tmp_path,
+        require_scores=True,
+        expected_sample_count=2,
+    )
