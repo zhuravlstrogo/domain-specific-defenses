@@ -4,18 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-if [[ "${CARES_ENV_LOADED:-0}" != "1" && -f .env ]]; then
-    set -a
-    # shellcheck disable=SC1091
-    source .env
-    set +a
-    export CARES_ENV_LOADED=1
-fi
-
-if [[ -n "${HF_TOKEN:-}" ]]; then
-    export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-$HF_TOKEN}"
-    export HUGGINGFACE_HUB_TOKEN="${HUGGINGFACE_HUB_TOKEN:-$HF_TOKEN}"
-fi
+# shellcheck disable=SC1091
+source scripts/cares_env.sh
 
 export SEED="${SEED:-42}"
 export LIMIT="${LIMIT:-300}"
