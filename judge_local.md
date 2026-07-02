@@ -8,12 +8,50 @@
 
 Если цель - заменить закрытые judge-модели без сильной потери качества, самый разумный порядок проверки такой:
 
-1. `qwen/qwen3-32b` как основной open-weight LLM-as-judge. В TIMETOACT Summer 2025 он набирает 71.1%, выше `anthropic/claude-sonnet-4` 64.4% и `openai/gpt-4o-2024-11-20` 53.6%. Практически это лучший баланс качества, размера и доступности среди open-моделей в таблице.
-2. `openai/gpt-oss-120b` как high-quality open-weight кандидат, если доступна инфраструктура. В TIMETOACT он 75.0%, то есть рядом с верхом leaderboard, но это не fully open source, а open weights, и сам TIMETOACT отмечает проблемы structured outputs/Harmony.
-3. `qwen/qwen3-30b-a3b` или `openai/gpt-oss-20b` как более легкие резервные судьи. В TIMETOACT они около уровня Claude Sonnet 4: 65.0% и 66.1% соответственно.
-4. Для safety-specific сигнала добавить не вместо, а рядом с LLM-as-judge: `Qwen3Guard-Gen-4B/8B` или `allenai/wildguard`. Они лучше подходят для классификации unsafe/refusal/bypass, но сами по себе не заменяют медицинский rubric judge, потому что не оценивают все поля текущей схемы, особенно utility и emergency escalation.
+1. Оставить `qwen/qwen-2.5-72b-instruct` как baseline-кандидата, потому что он уже использовался в проекте как локальная/API judge-модель, поддерживает `response_format` и `structured_outputs` на OpenRouter, а полный judge eval на `LIMIT=3000` стоит примерно $25-$31. Низкий TIMETOACT score не доказывает плохое качество именно для текущей medical safety rubric; это надо проверять agreement/human audit.
+2. Проверить `qwen/qwen3-32b` как более дешевую open-weight альтернативу. В TIMETOACT Summer 2025 он набирает 71.1%, выше `anthropic/claude-sonnet-4` 64.4% и `openai/gpt-4o-2024-11-20` 53.6%, а полный judge eval стоит примерно $7-$8.
+3. Проверить `qwen/qwen3-235b-a22b-2507` и `qwen/qwen3-30b-a3b-instruct-2507`: обе модели поддерживают structured outputs на OpenRouter и стоят дешевле `qwen-2.5-72b`; первая выглядит как сильный open-weight judge, вторая как дешевый sanity/ensemble judge.
+4. Для safety-specific сигнала добавить не вместо, а рядом с LLM-as-judge: `Qwen3Guard-Gen-4B/8B`, `allenai/wildguard`, `openai/gpt-oss-safeguard-20b` или `nvidia/nemotron-3.5-content-safety`. Они лучше подходят для классификации unsafe/refusal/bypass, но сами по себе не заменяют медицинский rubric judge, потому что не оценивают все поля текущей схемы, особенно utility и emergency escalation.
 
-Главная рекомендация: не переходить на один open judge. Для финального результата лучше использовать ансамбль `Qwen3-32B` + `Qwen3Guard/WildGuard` + небольшой human-labeled calibration slice на CARES, а затем сравнить agreement с сохраненным `gpt-4o`/`claude` run.
+Главная рекомендация: не переходить на один open judge без калибровки. Практичный стартовый набор для проверки: `qwen-2.5-72b-instruct` + `qwen3-32b` + auxiliary safety judge. Если `qwen-2.5-72b-instruct` показывает лучший agreement на CARES disagreement slice, его можно оставить основным: стоимость у него все еще на порядок ниже GPT-4o/Claude Sonnet.
+
+## Стоимость полного judge eval для `LIMIT=3000`
+
+Сценарий: `scripts/run_cares_model_inference.sh` запускает 3 main-модели (`qwen3_1_7b`, `gemma_3_4b_it`, `olmo2_0425_1b_instruct`), а каждая experiment config содержит 5 policies (`baseline`, `prompt_policy`, `strict_prompt_policy`, `retrieval_constraints`, `qwen3_guardrail`). Поэтому полный scoring поверх этих inference logs:
+
+```text
+3 main models * 5 policies * 3000 examples = 45000 judge calls
+```
+
+Оценка токенов:
+
+- по локальным smoke logs средний `MEDICAL_JUDGE_TEMPLATE` prompt был 5467 символов;
+- это примерно 1.4K input tokens на judge-вызов;
+- completion - короткий JSON, считаю 150 output tokens;
+- базовый расчет: 63.0M input tokens + 6.75M output tokens;
+- расчет с буфером на более длинные ответы / tokenizer drift: 76.5M input + 8.1M output.
+
+Если оценивать только один policy на каждую из 3 моделей, делить суммы примерно на 5.
+
+Цены взяты из OpenRouter `/api/v1/models` на 2026-07-02; OpenRouter price fields указаны в долларах за token, в таблице ниже переведены в $/1M tokens.
+
+| Judge model | OpenRouter price, $/1M in/out | Full eval базово | Full eval с буфером | Комментарий |
+| --- | ---: | ---: | ---: | --- |
+| `qwen/qwen-2.5-72b-instruct` | 0.36 / 0.40 | $25.38 | $30.78 | Уже использовался; хороший low-risk baseline; поддерживает structured outputs |
+| `qwen/qwen3-32b` | 0.08 / 0.28 | $6.93 | $8.39 | Лучший первый cheap challenger по TIMETOACT; проверить over-refusal |
+| `qwen/qwen3-30b-a3b-instruct-2507` | 0.048 / 0.193 | $4.34 | $5.25 | Очень дешевый второй judge; качество надо валидировать |
+| `qwen/qwen3-235b-a22b-2507` | 0.09 / 0.10 | $6.34 | $7.70 | Сильный open-weight кандидат; неожиданно дешевый на OpenRouter |
+| `qwen/qwen3-235b-a22b-thinking-2507` | 0.1495 / 1.495 | $19.51 | $23.55 | Проверять, только если нужен reasoning; output/reasoning может удорожать |
+| `deepseek/deepseek-r1-0528` | 0.50 / 2.15 | $46.01 | $55.66 | Качественный reasoning fallback, но дороже Qwen-вариантов |
+| `deepseek/deepseek-r1` | 0.70 / 2.50 | $60.98 | $73.80 | Сильный, но не лучший cost/quality для массового judge |
+| `deepseek/deepseek-chat-v3.1` | 0.21 / 0.79 | $18.56 | $22.46 | Дешевле R1, но слабее как rubric judge |
+| `openai/gpt-oss-120b` | 0.03 / 0.15 | $2.90 | $3.51 | Дешево; проверять JSON/schema и judge stability отдельно |
+| `openai/gpt-oss-20b` | 0.029 / 0.14 | $2.77 | $3.35 | Дешевый auxiliary judge, не основной без калибровки |
+| `openai/gpt-4o` | 2.50 / 10.00 | $225.00 | $272.25 | Закрытый reference; дорого для регулярного полного scoring |
+| `anthropic/claude-sonnet-4.5` | 3.00 / 15.00 | $290.25 | $351.00 | Закрытый reference; лучше оставить для audit slice |
+| `google/gemini-2.5-pro` | 1.25 / 10.00 | $146.25 | $176.62 | Текущий default в конфиге, но заметно дороже Qwen2.5-72B |
+
+Вывод по цене: `qwen/qwen-2.5-72b-instruct` стоит примерно $30 за полный judge pass на 45K outputs. Это достаточно дешево, чтобы оставить его основным кандидатом и не оптимизировать стоимость преждевременно. Самая рациональная экономия - использовать закрытые GPT-4o/Claude Sonnet только для 300-1000 sample audit slice, а полный scoring делать `qwen-2.5-72b-instruct` или Qwen3 open-weight judge.
 
 ## Что сравниваем
 
@@ -74,9 +112,9 @@ Open / local кандидаты из таблицы:
 | `deepseek/deepseek-r1-0528-qwen3-8b` | Open | 56.7% | +3.1 pp | -7.7 pp | Легкий sanity-check judge, но риск просадки |
 | `qwen/qwen3-14b` | Open | 56.1% | +2.5 pp | -8.3 pp | Минимальный разумный lightweight fallback |
 | `deepseek-v3` | Open | 50.6% | -3.0 pp | -13.8 pp | Уже ниже GPT-4o в этом benchmark |
-| `qwen/qwen-2.5-72b-instruct` | Open | 39.2% | -14.4 pp | -25.2 pp | Не рекомендую как новый judge; старые `limit100` runs в проекте тоже были проблемны |
+| `qwen/qwen-2.5-72b-instruct` | Open | 39.2% | -14.4 pp | -25.2 pp | Не отбрасывать: TIMETOACT слабый, но для нашего medical rubric это уже проверенный low-risk baseline; сравнивать по agreement/human audit |
 
-Вывод из таблицы: если ориентироваться на "не просесть" относительно `gpt-4o` и ближайшего `claude-sonnet-4`, `qwen3-32b`, `gpt-oss-20b`, `qwen3-30b-a3b`, `deepseek-r1` и `deepseek-r1-0528` проходят quality bar. Если нужен pragmatic local вариант, shortlist сужается до `qwen3-32b`, `qwen3-30b-a3b`, `gpt-oss-20b`; если нужна максимальная точность и есть железо - `gpt-oss-120b` или большой `deepseek-r1`.
+Вывод из таблицы: если ориентироваться только на TIMETOACT, `qwen3-32b`, `gpt-oss-20b`, `qwen3-30b-a3b`, `deepseek-r1` и `deepseek-r1-0528` проходят quality bar относительно `gpt-4o` и ближайшего `claude-sonnet-4`. Но для текущего проекта TIMETOACT не должен автоматически выбивать `qwen-2.5-72b-instruct`: это не safety/medical benchmark, а уже использованная judge-модель может оказаться лучше именно на вашей рубрике. Поэтому shortlist для практической проверки: `qwen-2.5-72b-instruct`, `qwen3-32b`, `qwen3-235b-a22b-2507`, `qwen3-30b-a3b-instruct-2507`; закрытые `gpt-4o`/`claude-sonnet-4.5` оставить как reference на audit slice.
 
 ## Риски при замене judge
 
@@ -98,9 +136,10 @@ Open / local кандидаты из таблицы:
 
 1. Зафиксировать один CARES slice, например текущий `limit=300`, `seed=42`, `sample_shuffle=42`.
 2. Запустить тех же outputs через:
-   - `gpt-4o` или сохраненный старый run как reference;
+   - `qwen-2.5-72b-instruct` как основной local/API baseline;
    - `qwen3-32b`;
-   - `qwen3-30b-a3b` или `gpt-oss-20b`;
+   - `qwen3-235b-a22b-2507` или `qwen3-30b-a3b-instruct-2507`;
+   - `gpt-4o` или `claude-sonnet-4.5` на audit slice как закрытый reference;
    - `Qwen3Guard-Gen-8B` или `WildGuard` как auxiliary safety/refusal classifier.
 3. Сравнить не только aggregate rates, но и disagreement rows:
    - risky false negative: open judge ставит success там, где закрытый judge видит unsafe_pass;
@@ -119,16 +158,16 @@ Open / local кандидаты из таблицы:
 
 ## Drop-in shortlist
 
-### Основной выбор
+### Основной baseline
 
-`qwen/qwen3-32b`
+`qwen/qwen-2.5-72b-instruct`
 
 Причины:
 
-- лучший practical open candidate в TIMETOACT после тяжелого `gpt-oss-120b`;
-- score 71.1%, что выше и `gpt-4o-2024-11-20`, и `claude-sonnet-4` в этой таблице;
-- Qwen family уже используется в проекте (`Qwen3-1.7B`, `Qwen3Guard-0.6B`), поэтому меньше интеграционного риска;
-- должен лучше следовать JSON/rubric, чем чистый safety classifier.
+- уже использовался в проекте как judge;
+- OpenRouter price дает около $25-$31 за полный scoring 45K outputs;
+- поддерживает `response_format` и `structured_outputs`;
+- достаточно дешевый, чтобы прогнать полный `LIMIT=3000` без преждевременной оптимизации.
 
 Проверить перед финальным переходом:
 
@@ -137,11 +176,17 @@ Open / local кандидаты из таблицы:
 - bias на benign over-refusal;
 - sensitivity к medical emergency prompts.
 
+### Первый challenger
+
+`qwen/qwen3-32b`
+
+Причины: сильный TIMETOACT score, Qwen family, structured outputs, низкая цена полного judge eval около $7-$8. Главный риск - реальное agreement на CARES может быть хуже, чем у `qwen-2.5-72b-instruct`, несмотря на general benchmark.
+
 ### Второй judge в open ensemble
 
-`qwen/qwen3-30b-a3b` или `openai/gpt-oss-20b`
+`qwen/qwen3-235b-a22b-2507` или `qwen/qwen3-30b-a3b-instruct-2507`
 
-`qwen3-30b-a3b` ближе к уже используемой Qwen экосистеме и в TIMETOACT почти равен Claude Sonnet 4. `gpt-oss-20b` чуть выше по score, но у TIMETOACT есть caveat про structured outputs у GPT-OSS/Harmony, что критично для текущего JSON scorer.
+`qwen3-235b-a22b-2507` выглядит как сильный open-weight кандидат при низкой цене OpenRouter; `qwen3-30b-a3b-instruct-2507` стоит еще дешевле и годится как второй голос/санити-чек. `openai/gpt-oss-20b/120b` можно добавить позже, но только после отдельной проверки structured output стабильности.
 
 ### Auxiliary safety judge
 
@@ -156,6 +201,7 @@ Open / local кандидаты из таблицы:
 ## Источники
 
 - TIMETOACT GROUP, "LLM Benchmarks Summer 2025": https://www.timetoact-group.at/en/insights/llm-benchmarks/llm-benchmarks-summer-2025
+- OpenRouter model catalog API, prices checked 2026-07-02: https://openrouter.ai/api/v1/models
 - Qwen3Guard model card: https://huggingface.co/Qwen/Qwen3Guard-Gen-8B
 - Qwen3Guard Technical Report: https://arxiv.org/abs/2510.14276
 - WildGuard paper: https://arxiv.org/abs/2406.18495
