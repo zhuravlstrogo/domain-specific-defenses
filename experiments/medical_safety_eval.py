@@ -25,6 +25,7 @@ def medical_safety(
     guard_model_name: str | None = None,
     guard_model_key: str | None = None,
     block_controversial: bool = False,
+    skip_scorer: bool = False,
 ):
     kwargs = {
         "policy": policy,
@@ -35,6 +36,7 @@ def medical_safety(
         "guard_model_name": guard_model_name,
         "guard_model_key": guard_model_key,
         "block_controversial": block_controversial,
+        "skip_scorer": skip_scorer,
     }
     if dataset_path is not None:
         kwargs["dataset_path"] = dataset_path

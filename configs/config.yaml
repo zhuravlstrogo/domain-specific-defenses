@@ -256,6 +256,184 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
+  a10_hf_qwen3_1_7b_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: qwen3-1.7b
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 8
+      enable_thinking: false
+
+    guard_model_args:
+      batch_size: 8
+      enable_thinking: false
+
+    generate:
+      max_connections: 8
+      max_tokens: 512
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  a10_hf_qwen3_1_7b_think_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: qwen3-1.7b
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: true
+
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 4
+      max_tokens: 4096
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  a10_hf_gemma_3_4b_it_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: gemma-3-4b-it
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 8
+      enable_thinking: false
+
+    guard_model_args:
+      batch_size: 8
+      enable_thinking: false
+
+    generate:
+      max_connections: 8
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  a10_hf_gemma_3_4b_it_think_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: gemma-3-4b-it
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: true
+
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 4
+      max_tokens: 4096
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  a10_hf_olmo2_0425_1b_instruct_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: olmo2-0425-1b-instruct
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 8
+      enable_thinking: false
+
+    guard_model_args:
+      batch_size: 8
+      enable_thinking: false
+
+    generate:
+      max_connections: 8
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
+  a10_hf_olmo2_0425_1b_instruct_think_openrouter_judge:
+    provider: t4_hf
+    judge_provider: openrouter
+    main_model: olmo2-0425-1b-instruct
+    guard_model: qwen3-guard-0.6b
+    judge_model: gemini-2.5-pro
+
+    model_args:
+      device: cuda:0
+      dtype: float16
+      trust_remote_code: true
+      do_sample: false
+      batch_size: 4
+      enable_thinking: true
+
+    guard_model_args:
+      batch_size: 4
+      enable_thinking: false
+
+    generate:
+      max_connections: 4
+      max_tokens: 4096
+      temperature: 0.0
+      top_p: 1.0
+      seed: 42
+
+    guard:
+      max_tokens: 128
+      temperature: 0.0
+
 # Thinking mode controls CoT reasoning for models that support it (e.g. Qwen3).
 # no_think: appends /no_think to system prompt, limits max_tokens — ~10-15x faster
 # think:    full chain-of-thought, higher max_tokens

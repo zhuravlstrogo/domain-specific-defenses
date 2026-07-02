@@ -31,7 +31,8 @@ src/domain_defenses/
 scripts/
   prepare_cares_dataset.py         # builds data/processed/cares_18k_v1.jsonl
   run_experiment_matrix.py         # config-driven experiment runner
-  run_cares_experiments.sh         # thin convenience wrapper
+  run_cares_model_inference.sh     # unscored inference for 3 CARES models
+  run_cares_judge_models.sh        # judge scoring for inference logs
   report_medical_safety_metrics.py # metrics report from Inspect .eval logs
 
 data/
@@ -51,70 +52,55 @@ notes/
 ## Основной запуск
 
 ```bash
-bash scripts/run_cares_experiments.sh
+bash scripts/run_cares_model_inference.sh
+bash scripts/run_cares_judge_models.sh
 ```
 
-Prompt-only запуск без внешнего guardrail:
+Первый скрипт запускает инференс трех моделей и пишет unscored Inspect logs.
+Второй скрипт запускает judge-модель поверх этих logs и собирает отчеты.
+По умолчанию judge - `gemini-2.5-pro` через OpenRouter.
+
+Smoke на 5 примерах:
 
 ```bash
-CONFIG=configs/experiments/cares_policy_prompts_qwen3_1_7b.yaml \
-bash scripts/run_cares_experiments.sh
+bash scripts/run_cares_all_models_smoke5.sh
 ```
 
-Полная матрица `baseline` + все текущие защиты:
-
-```bash
-CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
-bash scripts/run_cares_experiments.sh
-```
-
-По умолчанию wrapper запускает `gemini-2.5-pro` как judge через OpenRouter.
 `gpt-4o` временно отключен в runner-скриптах; чтобы вернуть его как второй
 judge, обновите `DEFAULT_JUDGE_MODEL_KEYS`.
 
-Та же схема для других моделей:
-
-```bash
-CONFIG=configs/experiments/cares_gemma_3_4b_it.yaml \
-bash scripts/run_cares_experiments.sh
-
-CONFIG=configs/experiments/cares_olmo_2_0425_1b_instruct.yaml \
-bash scripts/run_cares_experiments.sh
-```
-
-Та же матрица только с Gemini 2.5 Pro как judge через OpenRouter:
-
-```bash
-CONFIG=configs/experiments/cares_qwen3_1_7b.yaml \
-JUDGE_MODEL_KEY=gemini-2.5-pro \
-bash scripts/run_cares_experiments.sh
-```
-
-Эквивалентный явный запуск:
+Эквивалентный явный запуск одной матрицы с Gemini 2.5 Pro как judge:
 
 ```bash
 python scripts/run_experiment_matrix.py \
   configs/experiments/cares_qwen3_1_7b.yaml \
+  --runtime t4_hf_qwen3_1_7b_openrouter_judge \
   --judge-model-key gemini-2.5-pro
 ```
 
-Runner делает весь pipeline:
+Runner делает весь pipeline для одной config/runtime пары:
 
 1. готовит CARES subset, если `dataset.prepare: auto` и файла еще нет;
 2. запускает одинаковый Inspect task для всех `runs` из YAML;
 3. складывает логи в `logs/cares/<experiment_id>/<run_id>/`;
 4. пишет `manifest.json` и generated `run_config.tsv`;
-5. собирает общий Markdown/CSV report относительно `baseline_run`.
+5. собирает общий Markdown/CSV report относительно `baseline_run`, если scorer не отключен.
 
 Чтобы добрать следующий непересекающийся chunk после первых 300 примеров,
-используйте тот же seed, но задайте offset и отдельные output paths:
+используйте тот же seed, но задайте offset и отдельный suffix:
 
 ```bash
 LIMIT=2700 \
 DATASET_OFFSET=300 \
 DATASET_PATH=data/processed/cares_18k_v1_offset300_limit2700.jsonl \
 EXPERIMENT_SUFFIX=offset300_limit2700 \
-bash scripts/run_cares_all_models.sh
+bash scripts/run_cares_model_inference.sh
+
+LIMIT=2700 \
+DATASET_OFFSET=300 \
+DATASET_PATH=data/processed/cares_18k_v1_offset300_limit2700.jsonl \
+EXPERIMENT_SUFFIX=offset300_limit2700 \
+bash scripts/run_cares_judge_models.sh
 ```
 
 ## Experiment Config

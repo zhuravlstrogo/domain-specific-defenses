@@ -36,6 +36,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-report", action="store_true", help="Run evals but do not aggregate metrics."
     )
     parser.add_argument(
+        "--skip-scorer",
+        action="store_true",
+        help="Run model generation only and leave logs unscored for a later inspect score pass.",
+    )
+    parser.add_argument(
         "--print-output-paths",
         action="store_true",
         help="Print resolved output paths and exit without preparing data or running evals.",
@@ -230,7 +235,7 @@ def _run_uses_guard_model(run: dict[str, Any]) -> bool:
 
 def _task_uses_judge_model(task: str, runs: list[dict[str, Any]]) -> bool:
     if task.endswith("@medical_safety"):
-        return True
+        return any(not dict(run.get("task_args", {})).get("skip_scorer") for run in runs)
     return any(
         dict(run.get("task_args", {})).get("judge_model_key")
         or dict(run.get("task_args", {})).get("judge_model_name")
@@ -323,7 +328,21 @@ def _log_has_healthy_judge_scores(log: Any) -> bool:
     return True
 
 
-def _has_complete_eval_log(log_dir: Path, *, judge_model_name: str | None = None) -> bool:
+def _eval_log_is_success(log: Any) -> bool:
+    status = getattr(log, "status", None)
+    return status is None or str(status).lower() == "success"
+
+
+def _eval_log_has_samples(log: Any) -> bool:
+    return bool(getattr(log, "samples", None) or [])
+
+
+def _has_complete_eval_log(
+    log_dir: Path,
+    *,
+    judge_model_name: str | None = None,
+    require_scores: bool = True,
+) -> bool:
     if not log_dir.exists():
         return False
     for path in sorted(
@@ -335,16 +354,20 @@ def _has_complete_eval_log(log_dir: Path, *, judge_model_name: str | None = None
             log = read_eval_log(str(path))
         except Exception:
             continue
-        if (
-            eval_log_is_complete_and_scored(log)
-            and _log_uses_judge(log, judge_model_name)
-            and _log_has_healthy_judge_scores(log)
-        ):
+        if require_scores:
+            complete = (
+                eval_log_is_complete_and_scored(log)
+                and _log_uses_judge(log, judge_model_name)
+                and _log_has_healthy_judge_scores(log)
+            )
+        else:
+            complete = _eval_log_is_success(log) and _eval_log_has_samples(log)
+        if complete:
             return True
     return False
 
 
-def _latest_complete_eval(log_dir: Path) -> Path:
+def _latest_complete_eval(log_dir: Path, *, require_scores: bool = True) -> Path:
     if not log_dir.exists():
         raise FileNotFoundError(f"Log directory not found: {log_dir}")
     rejected: list[str] = []
@@ -358,13 +381,18 @@ def _latest_complete_eval(log_dir: Path) -> Path:
         except Exception as exc:
             rejected.append(f"{path.name}: unreadable ({exc})")
             continue
-        if eval_log_is_complete_and_scored(log):
+        if require_scores:
+            complete = eval_log_is_complete_and_scored(log)
+        else:
+            complete = _eval_log_is_success(log) and _eval_log_has_samples(log)
+        if complete:
             return path
         status = getattr(log, "status", None)
         sample_count = len(getattr(log, "samples", None) or [])
         rejected.append(f"{path.name}: status={status!r}, samples={sample_count}")
     detail = "; ".join(rejected)
-    raise ValueError(f"No successful scored .eval files found in {log_dir}: {detail}")
+    scored = " scored" if require_scores else ""
+    raise ValueError(f"No successful{scored} .eval files found in {log_dir}: {detail}")
 
 
 def _prepare_dataset(
@@ -500,6 +528,15 @@ def main() -> int:
     runs = list(cfg.get("runs", []))
     if not runs:
         raise ValueError("Config must define at least one run.")
+    if args.skip_scorer:
+        resolved_runs: list[dict[str, Any]] = []
+        for run in runs:
+            resolved_run = dict(run)
+            task_args = dict(resolved_run.get("task_args", {}))
+            task_args["skip_scorer"] = True
+            resolved_run["task_args"] = task_args
+            resolved_runs.append(resolved_run)
+        runs = resolved_runs
 
     runtime = args.runtime or str(cfg.get("runtime", "t4_hf"))
     judge_model_key = args.judge_model_key or cfg.get("judge_model_key")
@@ -611,12 +648,14 @@ def main() -> int:
     eval_commands: list[list[str]] = []
     score_commands: list[list[str]] = []
     skipped_runs: list[str] = []
-    resolved_judge_model_name = get_runtime_model_name(
-        "judge",
-        runtime=runtime,
-        model_key=judge_model_key,
-        model_name=judge_model_name,
-    )
+    resolved_judge_model_name = None
+    if not args.skip_scorer:
+        resolved_judge_model_name = get_runtime_model_name(
+            "judge",
+            runtime=runtime,
+            model_key=judge_model_key,
+            model_name=judge_model_name,
+        )
     for run in runs:
         run_id = str(run["id"])
         task_args = dict(run.get("task_args", {}))
@@ -627,9 +666,13 @@ def main() -> int:
         if args.resume and _has_complete_eval_log(
             log_dir,
             judge_model_name=resolved_judge_model_name,
+            require_scores=not args.skip_scorer,
         ):
             skipped_runs.append(run_id)
-            print(f"skip existing complete .eval for judge in {log_dir}")
+            if args.skip_scorer:
+                print(f"skip existing complete unscored .eval in {log_dir}")
+            else:
+                print(f"skip existing complete .eval for judge in {log_dir}")
             print()
             continue
 
@@ -650,7 +693,7 @@ def main() -> int:
                 source_log = source_dir / "<latest-successful.eval>"
                 output_file = log_dir / f"{run_id}_rescored.eval"
             else:
-                source_log = _latest_complete_eval(source_dir)
+                source_log = _latest_complete_eval(source_dir, require_scores=False)
                 output_file = log_dir / source_log.name
             command = _build_score_command(
                 source_log=source_log,
@@ -714,7 +757,7 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    if not args.skip_report:
+    if not args.skip_report and not args.skip_scorer:
         print("==> report")
         _run(report_command, dry_run=args.dry_run)
 

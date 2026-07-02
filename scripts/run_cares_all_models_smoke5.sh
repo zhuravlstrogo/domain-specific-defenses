@@ -9,5 +9,9 @@ export DATASET_SIZE="${DATASET_SIZE:-5}"
 export EXPERIMENT_SUFFIX="${EXPERIMENT_SUFFIX:-smoke_limit5}"
 export FORCE="${FORCE:-1}"
 export RESUME="${RESUME:-0}"
+export QWEN3_RUNTIME="${QWEN3_RUNTIME:-a10_hf_qwen3_1_7b_openrouter_judge}"
+export GEMMA_RUNTIME="${GEMMA_RUNTIME:-a10_hf_gemma_3_4b_it_openrouter_judge}"
+export OLMO_RUNTIME="${OLMO_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_openrouter_judge}"
 
-exec bash scripts/run_cares_all_models.sh
+bash scripts/run_cares_model_inference.sh
+bash scripts/run_cares_judge_models.sh

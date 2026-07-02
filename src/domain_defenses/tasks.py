@@ -69,6 +69,7 @@ def medical_safety(
     guard_model_name: str | None = None,
     guard_model_key: str | None = None,
     block_controversial: bool = False,
+    skip_scorer: bool = False,
 ):
     """Evaluate a model on medical safety prompts under a selected defense policy."""
     dataset = load_medical_samples(dataset_path)
@@ -85,12 +86,14 @@ def medical_safety(
         model_name=guard_model_name,
     )
     guard_config = get_runtime_guard_config(runtime)
-    judge_model = build_runtime_model(
-        "judge",
-        runtime=runtime,
-        model_key=judge_model_key,
-        model_name=judge_model_name,
-    )
+    judge_model = None
+    if not skip_scorer:
+        judge_model = build_runtime_model(
+            "judge",
+            runtime=runtime,
+            model_key=judge_model_key,
+            model_name=judge_model_name,
+        )
     generation = (
         qwen3_guarded_generate(
             guard_model_name=resolved_guard_model_name,
@@ -109,6 +112,6 @@ def medical_safety(
             *_solver_prompt(get_policy_prompt(policy), resolved_main_model_name),
             generation,
         ],
-        scorer=medical_safety_scorer(judge_model),
+        scorer=None if skip_scorer else medical_safety_scorer(judge_model),
         config=get_runtime_generate_config(runtime),
     )

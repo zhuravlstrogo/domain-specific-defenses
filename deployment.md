@@ -13,6 +13,15 @@
 
 Этого достаточно для `Qwen/Qwen3-1.7B`, `google/gemma-3-4b-it` и `allenai/OLMo-2-0425-1B-Instruct` как основных моделей, а также для `Qwen/Qwen3Guard-Gen-0.6B` как guard-модели в `dtype: float16`. GPU A2 16 GB тоже подходит для этого профиля, но обычно будет медленнее T4. При OOM уменьшайте `runtime.t4_hf.generate.max_connections` и `runtime.t4_hf.model_args.batch_size` до `1-2`.
 
+Рекомендуемый профиль для ускоренного CARES-инференса на A10:
+
+- GPU: 1 x Tesla A10 24 GB
+- CPU: 8 vCPU
+- RAM: 32 GB
+- Disk: 120 GB SSD
+
+Этот профиль подходит для более агрессивных настроек `batch_size`/`max_connections` на текущих 1B-4B моделях: например, `8/8` для no-think и `4/4` для think-режима, если `nvidia-smi` показывает достаточный запас VRAM.
+
 Запрашивайте больше ресурсов, если переходите на 7B+ модели или хотите держать несколько vLLM-серверов одновременно:
 
 - GPU VRAM: 24-48 GB
