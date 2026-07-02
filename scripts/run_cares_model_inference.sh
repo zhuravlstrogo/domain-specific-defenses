@@ -23,6 +23,10 @@ if [[ -n "${MODEL_LABEL:-}" || -n "${LOG_ROOT:-}" || -n "${REPORT_MD:-}" || -n "
     exit 1
 fi
 
+timestamp_utc() {
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 run_inference_case() {
     local config="$1"
     local model_id="$2"
@@ -73,8 +77,13 @@ run_inference_case() {
         args+=(--resume)
     fi
 
-    echo "==> inference: $model_id | runtime: $runtime"
+    local started_epoch
+    local finished_epoch
+    started_epoch="$(date -u +%s)"
+    echo "==> inference start: $(timestamp_utc) | model: $model_id | runtime: $runtime | suffix: ${experiment_suffix:-none}"
     "${args[@]}"
+    finished_epoch="$(date -u +%s)"
+    echo "==> inference finish: $(timestamp_utc) | model: $model_id | runtime: $runtime | duration_sec: $((finished_epoch - started_epoch))"
 }
 
 configs=(

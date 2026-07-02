@@ -43,6 +43,10 @@ if [[ -n "${MODEL_LABEL:-}" || -n "${LOG_ROOT:-}" || -n "${REPORT_MD:-}" || -n "
     exit 1
 fi
 
+timestamp_utc() {
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 effective_experiment_suffix() {
     local case_suffix="${1:-}"
     local experiment_suffix="${EXPERIMENT_SUFFIX:-}"
@@ -291,13 +295,25 @@ run_judge_case() {
     local model_id="$2"
     local runtime="$3"
     local case_suffix="${4:-}"
+    local experiment_suffix
     local inference_log_root
     local judge_model_key
+    local case_started_epoch
+    local case_finished_epoch
 
+    experiment_suffix="$(effective_experiment_suffix "$case_suffix")"
+    case_started_epoch="$(date -u +%s)"
+    echo "==> judge case start: $(timestamp_utc) | model: $model_id | runtime: $runtime | suffix: ${experiment_suffix:-none}"
     inference_log_root="$(resolve_inference_log_root "$config" "$runtime" "$case_suffix")"
     resolve_report_paths "$config" "$runtime" "$case_suffix"
 
     for judge_model_key in "${judge_model_keys[@]}"; do
+        local judge_started_epoch
+        local judge_finished_epoch
+        local judge_label
+
+        judge_label="${judge_model_key:-$JUDGE_MODEL_NAME}"
+        judge_started_epoch="$(date -u +%s)"
         common_args_for_case "$config" "$runtime" "$case_suffix"
         if [[ -n "$judge_model_key" ]]; then
             MATRIX_ARGS+=(--judge-model-key "$judge_model_key")
@@ -314,11 +330,15 @@ run_judge_case() {
             )
         fi
 
-        echo "==> judge: $model_id | runtime: $runtime | judge: ${judge_model_key:-$JUDGE_MODEL_NAME} | score-only from $inference_log_root"
+        echo "==> judge start: $(timestamp_utc) | model: $model_id | runtime: $runtime | judge: $judge_label | score-only from: $inference_log_root"
         "${MATRIX_ARGS[@]}"
+        judge_finished_epoch="$(date -u +%s)"
+        echo "==> judge finish: $(timestamp_utc) | model: $model_id | runtime: $runtime | judge: $judge_label | duration_sec: $((judge_finished_epoch - judge_started_epoch))"
     done
     run_judge_agreement "$model_id" "$case_suffix"
     validate_case_outputs "$model_id"
+    case_finished_epoch="$(date -u +%s)"
+    echo "==> judge case finish: $(timestamp_utc) | model: $model_id | runtime: $runtime | duration_sec: $((case_finished_epoch - case_started_epoch))"
 }
 
 configs=(
