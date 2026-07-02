@@ -12,9 +12,7 @@ export LIMIT="${LIMIT:-300}"
 export FORCE="${FORCE:-0}"
 export RESUME="${RESUME:-1}"
 export SKIP_VALIDATE="${SKIP_VALIDATE:-0}"
-# gpt-4o is temporarily disabled. Re-enable by setting:
-# DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gemini-2.5-pro gpt-4o}"
-export DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gemini-2.5-pro}"
+export DEFAULT_JUDGE_MODEL_KEYS="${DEFAULT_JUDGE_MODEL_KEYS:-gpt-oss-120b qwen3-32b}"
 
 if [[ "$FORCE" == "1" ]]; then
     export RESUME=0
