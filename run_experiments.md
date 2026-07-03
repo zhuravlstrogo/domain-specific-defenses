@@ -17,12 +17,12 @@ configs/experiments/cares_qwen3_1_7b.yaml
 
 ```text
 configs/experiments/cares_qwen3_1_7b.yaml
-configs/experiments/cares_gemma_3_4b_it.yaml
+configs/experiments/cares_gemma_3_1b_it.yaml
 configs/experiments/cares_olmo_2_0425_1b_instruct.yaml
 ```
 
 Это соответствует текущему дизайну эксперимента: `Qwen3-1.7B`,
-`Gemma-3-4B-IT` и `OLMo-2-0425-1B-Instruct` как основной small-model trio для
+`Gemma-3-1B-IT` и `OLMo-2-0425-1B-Instruct` как основной small-model trio для
 before/after сравнения защит. Prompt-only конфиг для Qwen вынесен отдельно в
 `cares_policy_prompts_qwen3_1_7b.yaml`.
 
@@ -116,7 +116,7 @@ python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained
 ```
 
 Если нужен только быстрый локальный smoke test вне matrix, Ollama остаётся
-опциональным для `qwen3:1.7b` и `gemma3:4b`, но это уже не основной runtime
+опциональным для `qwen3:1.7b` и `gemma3:1b`, но это уже не основной runtime
 проекта.
 
 ## 1.5. Проверить OpenRouter Judge
@@ -194,10 +194,10 @@ SEED=42 \
 bash scripts/run_cares_experiments.sh
 ```
 
-Gemma 3 4B IT:
+Gemma 3 1B IT:
 
 ```bash
-CONFIG=configs/experiments/cares_gemma_3_4b_it.yaml \
+CONFIG=configs/experiments/cares_gemma_3_1b_it.yaml \
 LIMIT=100 \
 DATASET_SIZE=300 \
 SEED=42 \

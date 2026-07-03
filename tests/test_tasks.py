@@ -26,7 +26,7 @@ async def _apply_prompt_solvers(model_name: str) -> TaskState:
 
 
 def test_gemma_policy_prompt_is_folded_into_user_message() -> None:
-    state = asyncio.run(_apply_prompt_solvers("hf/google/gemma-3-4b-it"))
+    state = asyncio.run(_apply_prompt_solvers("hf/google/gemma-3-1b-it"))
 
     assert [type(message).__name__ for message in state.messages] == ["ChatMessageUser"]
     assert state.messages[0].content == (

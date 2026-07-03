@@ -8,7 +8,7 @@ Provider configs live in `configs/config.yaml`. Model strings and defaults are l
 
 ```bash
 ollama pull qwen3:1.7b
-ollama pull gemma3:4b
+ollama pull gemma3:1b
 # ollama serve  # starts automatically on macOS
 ```
 
@@ -84,7 +84,7 @@ inspect eval experiments/medical_mcq_robustness_eval.py@medical_mcq_robustness \
 
 Other models (ollama):
 - `ollama/qwen3:1.7b`
-- `ollama/gemma3:4b`
+- `ollama/gemma3:1b`
 - `hf/allenai/OLMo-2-0425-1B-Instruct`
 
 ### OpenRouter

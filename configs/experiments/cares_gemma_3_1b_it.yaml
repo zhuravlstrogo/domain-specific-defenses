@@ -8,7 +8,7 @@ dataset:
   seed: 42
   prepare: auto
 
-runtime: t4_hf_gemma_3_4b_it_openrouter_judge
+runtime: t4_hf_gemma_3_1b_it_openrouter_judge
 limit: 300
 sample_shuffle: 42
 baseline_run: baseline

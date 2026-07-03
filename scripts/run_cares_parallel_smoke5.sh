@@ -16,7 +16,7 @@ export WAIT_FOR_INFERENCE="${WAIT_FOR_INFERENCE:-1}"
 export INFERENCE_WAIT_TIMEOUT_SECONDS="${INFERENCE_WAIT_TIMEOUT_SECONDS:-7200}"
 export INFERENCE_WAIT_POLL_SECONDS="${INFERENCE_WAIT_POLL_SECONDS:-10}"
 export QWEN3_RUNTIME="${QWEN3_RUNTIME:-a10_hf_qwen3_1_7b_openrouter_judge}"
-export GEMMA_RUNTIME="${GEMMA_RUNTIME:-a10_hf_gemma_3_4b_it_openrouter_judge}"
+export GEMMA_RUNTIME="${GEMMA_RUNTIME:-a10_hf_gemma_3_1b_it_openrouter_judge}"
 export OLMO_RUNTIME="${OLMO_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_openrouter_judge}"
 
 echo "==> parallel smoke: inference and judge"

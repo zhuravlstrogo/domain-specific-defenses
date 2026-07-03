@@ -17,7 +17,7 @@
 
 ## Стоимость полного judge eval для `LIMIT=3000`
 
-Сценарий: `scripts/run_cares_model_inference.sh` запускает 3 main-модели (`qwen3_1_7b`, `gemma_3_4b_it`, `olmo2_0425_1b_instruct`), а каждая experiment config содержит 5 policies (`baseline`, `prompt_policy`, `strict_prompt_policy`, `retrieval_constraints`, `qwen3_guardrail`). Поэтому полный scoring поверх этих inference logs:
+Сценарий: `scripts/run_cares_model_inference.sh` запускает 3 main-модели (`qwen3_1_7b`, `gemma_3_1b_it`, `olmo2_0425_1b_instruct`), а каждая experiment config содержит 5 policies (`baseline`, `prompt_policy`, `strict_prompt_policy`, `retrieval_constraints`, `qwen3_guardrail`). Поэтому полный scoring поверх этих inference logs:
 
 ```text
 3 main models * 5 policies * 3000 examples = 45000 judge calls

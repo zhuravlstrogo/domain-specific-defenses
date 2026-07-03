@@ -23,7 +23,7 @@ provider:
   t4_hf:
     models:
       qwen3-1.7b: hf/Qwen/Qwen3-1.7B
-      gemma-3-4b-it: hf/google/gemma-3-4b-it
+      gemma-3-1b-it: hf/google/gemma-3-1b-it
       olmo2-0425-1b-instruct: hf/allenai/OLMo-2-0425-1B-Instruct
       qwen3-guard-0.6b: hf/Qwen/Qwen3Guard-Gen-0.6B
 
@@ -31,7 +31,7 @@ provider:
     base_url: http://localhost:11434
     models:
       qwen3-1.7b: ollama/qwen3:1.7b
-      gemma-3-4b-it: ollama/gemma3:4b
+      gemma-3-1b-it: ollama/gemma3:1b
 
   openrouter:
     base_url: https://openrouter.ai/api/v1
@@ -139,10 +139,10 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  t4_hf_gemma_3_4b_it_openrouter_judge:
+  t4_hf_gemma_3_1b_it_openrouter_judge:
     provider: t4_hf
     judge_provider: openrouter
-    main_model: gemma-3-4b-it
+    main_model: gemma-3-1b-it
     guard_model: qwen3-guard-0.6b
     judge_model: qwen3-32b
 
@@ -160,6 +160,7 @@ runtime:
 
     generate:
       max_connections: 4
+      max_tokens: 512
       temperature: 0.0
       top_p: 1.0
       seed: 42
@@ -168,10 +169,10 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  t4_hf_gemma_3_4b_it_think_openrouter_judge:
+  t4_hf_gemma_3_1b_it_think_openrouter_judge:
     provider: t4_hf
     judge_provider: openrouter
-    main_model: gemma-3-4b-it
+    main_model: gemma-3-1b-it
     guard_model: qwen3-guard-0.6b
     judge_model: qwen3-32b
 
@@ -317,10 +318,10 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  a10_hf_gemma_3_4b_it_openrouter_judge:
+  a10_hf_gemma_3_1b_it_openrouter_judge:
     provider: t4_hf
     judge_provider: openrouter
-    main_model: gemma-3-4b-it
+    main_model: gemma-3-1b-it
     guard_model: qwen3-guard-0.6b
     judge_model: qwen3-32b
 
@@ -338,6 +339,7 @@ runtime:
 
     generate:
       max_connections: 8
+      max_tokens: 512
       temperature: 0.0
       top_p: 1.0
       seed: 42
@@ -346,10 +348,10 @@ runtime:
       max_tokens: 128
       temperature: 0.0
 
-  a10_hf_gemma_3_4b_it_think_openrouter_judge:
+  a10_hf_gemma_3_1b_it_think_openrouter_judge:
     provider: t4_hf
     judge_provider: openrouter
-    main_model: gemma-3-4b-it
+    main_model: gemma-3-1b-it
     guard_model: qwen3-guard-0.6b
     judge_model: qwen3-32b
 

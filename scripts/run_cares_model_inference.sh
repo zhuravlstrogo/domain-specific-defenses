@@ -88,17 +88,17 @@ run_inference_case() {
 
 configs=(
     "configs/experiments/cares_qwen3_1_7b.yaml"
-    "configs/experiments/cares_gemma_3_4b_it.yaml"
+    "configs/experiments/cares_gemma_3_1b_it.yaml"
     "configs/experiments/cares_olmo_2_0425_1b_instruct.yaml"
 )
 model_ids=(
     "qwen3_1_7b"
-    "gemma_3_4b_it"
+    "gemma_3_1b_it"
     "olmo2_0425_1b_instruct"
 )
 runtimes=(
     "${QWEN3_RUNTIME:-a10_hf_qwen3_1_7b_openrouter_judge}"
-    "${GEMMA_RUNTIME:-a10_hf_gemma_3_4b_it_openrouter_judge}"
+    "${GEMMA_RUNTIME:-a10_hf_gemma_3_1b_it_openrouter_judge}"
     "${OLMO_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_openrouter_judge}"
 )
 case_suffixes=(
@@ -110,17 +110,17 @@ case_suffixes=(
 if [[ "$RUN_THINK" == "1" ]]; then
     configs+=(
         "configs/experiments/cares_qwen3_1_7b.yaml"
-        "configs/experiments/cares_gemma_3_4b_it.yaml"
+        "configs/experiments/cares_gemma_3_1b_it.yaml"
         "configs/experiments/cares_olmo_2_0425_1b_instruct.yaml"
     )
     model_ids+=(
         "qwen3_1_7b"
-        "gemma_3_4b_it"
+        "gemma_3_1b_it"
         "olmo2_0425_1b_instruct"
     )
     runtimes+=(
         "${QWEN3_THINK_RUNTIME:-a10_hf_qwen3_1_7b_think_openrouter_judge}"
-        "${GEMMA_THINK_RUNTIME:-a10_hf_gemma_3_4b_it_think_openrouter_judge}"
+        "${GEMMA_THINK_RUNTIME:-a10_hf_gemma_3_1b_it_think_openrouter_judge}"
         "${OLMO_THINK_RUNTIME:-a10_hf_olmo2_0425_1b_instruct_think_openrouter_judge}"
     )
     case_suffixes+=(
