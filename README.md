@@ -2,7 +2,12 @@
 
 Benchmark для проверки защит LLM в медицинском домене.
 
-Сравнивает baseline-модели, prompt policies и guardrails на CARES-18K.
+Сравнивает baseline-модели и защиты на CARES-18K:
+
+- prompt policy;
+- strict prompt policy;
+- retrieval constraints;
+- guardrails.
 
 ## Установка
 
@@ -53,7 +58,7 @@ python scripts/run_experiment_matrix.py \
 
 ```text
 configs/experiments/    конфиги 
-experiments/           оценки 
+experiments/           eval-сценарии
 src/domain_defenses/   политики, guardrails, scoring и analysis
 scripts/               подготовка данных, запуск, отчеты
 data/processed/        данные 
