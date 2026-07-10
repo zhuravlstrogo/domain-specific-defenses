@@ -217,7 +217,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-for_me.md
-
 logs/
 reports/ 
+notes/ 
+
+*.pptx
+*.png
