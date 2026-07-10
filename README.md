@@ -40,7 +40,7 @@ bash scripts/run_cares_model_inference.sh
 bash scripts/run_cares_judge_models.sh
 ```
 
-Ручной запуск одной матрицы:
+Ручной запуск одного эксперимента:
 
 ```bash
 python scripts/run_experiment_matrix.py \
@@ -52,24 +52,12 @@ python scripts/run_experiment_matrix.py \
 ## Структура
 
 ```text
-configs/experiments/   YAML-матрицы экспериментов
-experiments/           Inspect AI задачи
+configs/experiments/    конфиги 
+experiments/           оценки 
 src/domain_defenses/   политики, guardrails, scoring и analysis
 scripts/               подготовка данных, запуск, отчеты
-data/processed/        подготовленные датасеты
-logs/cares/            Inspect logs
+data/processed/        данные 
+logs/cares/            inspect logs
 reports/results/       итоговые отчеты
-tests/                 pytest-тесты
-```
-
-## Новая защита
-
-1. Добавьте реализацию в `src/domain_defenses/`.
-2. Подключите ее в `src/domain_defenses/tasks.py`.
-3. Добавьте run в YAML из `configs/experiments/`.
-
-## Тесты
-
-```bash
-python -m pytest
+tests/                 тесты
 ```
